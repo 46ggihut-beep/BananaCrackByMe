@@ -2718,25 +2718,25 @@ end
 local E = {}
 if game.PlaceId == getgenv().CheckPlaceId3 then
 	E = {
-		["Start Island"] = CFrame.new(1071.2832, 16.3085976, 1426.86792),
-		["Marine Start"] = CFrame.new(-2573.3374, 6.88881969, 2046.99817),
-		["Middle Town"] = CFrame.new(-655.824158, 7.88708115, 1436.67908),
-		Jungle = CFrame.new(-1249.77222, 11.8870859, 341.356476),
-		["Pirate Village"] = CFrame.new(-1122.34998, 4.78708982, 3855.91992),
-		Desert = CFrame.new(1094.14587, 6.47350502, 4192.88721),
-		["Frozen Village"] = CFrame.new(1198.00928, 27.0074959, -1211.73376),
-		MarineFord = CFrame.new(-4505.375, 20.687294, 4260.55908),
-		Colosseum = CFrame.new(-1428.35474, 7.38933945, -3014.37305),
-		["Sky 1st Floor"] = CFrame.new(-4970.21875, 717.707275, -2622.35449),
-		["Sky 2st Floor"] = CFrame.new(-4813.0249, 903.708557, -1912.69055),
-		["Sky 3st Floor"] = CFrame.new(-7952.31006, 5545.52832, -320.704956),
-		Prison = CFrame.new(4854.16455, 5.68742752, 740.194641),
-		["Magma Village"] = CFrame.new(-5231.75879, 8.61593437, 8467.87695),
-		["UndeyWater City"] = CFrame.new(61163.8516, 11.7796879, 1819.78418),
-		["Fountain City"] = CFrame.new(5132.7124, 4.53632832, 4037.8562),
-		["House Cyborg's"] = CFrame.new(6262.72559, 71.3003616, 3998.23047),
-		["Shank's Room"] = CFrame.new(-1442.16553, 29.8788261, -28.3547478),
-		["Mob Island"] = CFrame.new(-2850.20068, 7.39224768, 5354.99268),
+		["Start Island"] = CFrame.new(1045.99, 72.83, 1610.05),
+		["Marine Start"] = CFrame.new(-2636.48, 85.61, 2001.42),
+		["Middle Town"] = CFrame.new(-706.22, 48.31, 1586.53),
+		Jungle = CFrame.new(-1514.13, 75.22, 63.81),
+		["Pirate Village"] = CFrame.new(-1075.25, 69.30, 3914.24),
+		Desert = CFrame.new(916.21, 37.65, 4412.62),
+		["Frozen Village"] = CFrame.new(1305, 121, -1334),
+		MarineFord = CFrame.new(-4716, 64, 4319),
+		Colosseum = CFrame.new(-1266, 115, -2836),
+		["Sky 1st Floor"] = CFrame.new(-4805.72, 943.49, -894.96),
+		["Sky 2st Floor"] = CFrame.new(-4270.89, 1089.60, -407.52),
+		["Sky 3st Floor"] = CFrame.new(-6044.16, 5502.59, 2173.78),
+		Prison = CFrame.new(5060, 134, 736),
+		["Magma Village"] = CFrame.new(-5369, 82, 8610),
+		["UndeyWater City"] = CFrame.new(61351, 120, 1287),
+		["Fountain City"] = CFrame.new(5142, 152, 4021),
+		["House Cyborg's"] = CFrame.new(6311, 122, 4923),
+		["Shank's Room"] = CFrame.new(-1501, 39, 15),
+		["Mob Island"] = CFrame.new(-2868, 81, 5390),
 	}
 elseif game.PlaceId == getgenv().CheckPlaceId2 then
 	E = {
@@ -2755,6 +2755,7 @@ elseif game.PlaceId == getgenv().CheckPlaceId2 then
 		["Hot and Cold"] = CFrame.new(-6026.96484, 14.7461271, -5071.96338),
 		["Magma Side"] = CFrame.new(-5478.39209, 15.9775667, -5246.9126),
 		["Cursed Ship"] = CFrame.new(902.059143, 124.752518, 33071.8125),
+		["Door Ship"] = CFrame.new(-6495, 116, -112),
 		["Frosted Island"] = CFrame.new(5400.40381, 28.21698, -6236.99219),
 		["Forgotten Island"] = CFrame.new(-3043.31543, 238.881271, -10191.5791),
 		["Usoapp Island"] = CFrame.new(4748.78857, 8.35370827, 2849.57959),
@@ -3656,6 +3657,572 @@ local function B(Z, C, J, F)
 	return r
 end
 
+-- ===== SEA1 GATE: Sky2 <-> Sky3 | Xoáy Nước <-> Under City =====
+do
+	local Sea1Gate = {}
+	getgenv().Sea1Gate = Sea1Gate
+	local Sea2Gate = {}
+	getgenv().Sea2Gate = Sea2Gate
+	local CFG = {
+		SKY2_POS = Vector3.new(-4210, 1092, -374),
+		SKY_START_POS = Vector3.new(-6022, 5485, 2222),
+		SKY_ENTRANCE_POS = Vector3.new(-4166.60986328125, 1093.697998046875, -347.16226196289062),
+		UNDER_WAIT_POS = Vector3.new(4047, 10, -1816),
+		UNDER_ENTRANCE_POS = Vector3.new(61163.8515625, 11.680007934570312, 1819.7840576171875),
+		XOAY_WAIT_POS = Vector3.new(61170, 10, 1955),
+		XOAY_ENTRANCE_POS = Vector3.new(3864.68798828125, 6.73699951171875, -1926.2139892578125),
+		SKY3_Y = 4000,
+		UNDER_X = 40000,
+		CLICK_INTERVAL = 0.5,
+	}
+	local st = { lastClick = 0, arrivedAt = nil, lastEntrance = 0 }
+
+	local function zoneOf(pos)
+		if pos.X > CFG.UNDER_X then
+			return "Under"
+		end
+		if pos.Y > CFG.SKY3_Y then
+			return "Sky3"
+		end
+		return "Main"
+	end
+
+	local function flyTo(H, pos)
+		B(H, CFrame.new(pos), tonumber(Settings["Speed Tween "]) or 300, 8)
+	end
+
+	local CLICK_UDIM = UDim2.new(0.15, 0, 0.15, 0)
+	local function doClick()
+		local vim = game:GetService("VirtualInputManager")
+		local vp = workspace.CurrentCamera.ViewportSize
+		local x = vp.X * CLICK_UDIM.X.Scale + CLICK_UDIM.X.Offset
+		local y = vp.Y * CLICK_UDIM.Y.Scale + CLICK_UDIM.Y.Offset
+		vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+		vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+	end
+
+	-- bay tới điểm chờ -> delay -> requestEntrance (có throttle, tự lặp lại nếu chưa qua được)
+	local function gate(H, waitPos, entrancePos, delay, after)
+		if tick() < (st.cool or 0) then
+			return false
+		end
+		if (H.Position - waitPos).Magnitude > 15 then
+			st.arrivedAt = nil
+			flyTo(H, waitPos)
+			return true
+		end
+		local now = tick()
+		if not st.arrivedAt then
+			st.arrivedAt = now
+			return true
+		end
+		if now - st.arrivedAt < delay or now - st.lastEntrance < 1.5 then
+			return true
+		end
+		if not st.attemptStart or now - st.attemptStart > 60 then
+			st.attemptStart, st.attempts = now, 0
+		end
+		st.attempts = st.attempts + 1
+		if st.attempts > 5 then
+			st.cool, st.arrivedAt, st.attemptStart = now + 30, nil, nil
+			return false
+		end
+		st.lastEntrance = now
+		I()
+		pcall(function()
+			game.ReplicatedStorage.Remotes.CommF_:InvokeServer("requestEntrance", entrancePos)
+		end)
+		task.wait(0.6)
+		if after then
+			pcall(after)
+		end
+		return true
+	end
+
+	-- Main -> Sky3: bay tới Sky2, cầm melee, click liên tục tại UDim2(0.15,0.15) tới khi Y > SKY3_Y
+	local function startClickLoop()
+		if st.clicking then
+			return
+		end
+		st.clicking = true
+		task.spawn(function()
+			local lastEquip = 0
+			while tick() - (st.climbTick or 0) < 0.6 do
+				local hrp = getHRP()
+				if not hrp or hrp.Position.Y > CFG.SKY3_Y then
+					break
+				end
+				if tick() - lastEquip >= 0.5 then
+					lastEquip = tick()
+					local name = NameWeapon and NameWeapon("Melee")
+					if name and equiptool then
+						equiptool(name)
+					end
+				end
+				doClick()
+				task.wait()
+			end
+			st.clicking = false
+		end)
+	end
+
+	local function climbSky3(H)
+		local d = (H.Position - CFG.SKY2_POS).Magnitude
+		if d > 15 then
+			flyTo(H, CFG.SKY2_POS)
+		end
+		if d < 60 then
+			st.climbTick = tick()
+			startClickLoop()
+		end
+		return true
+	end
+
+	-- return true = tick này đã bị cổng xử lý, toTarget phải return
+	function Sea1Gate.Step(H, targetPos)
+		local pz, tz = zoneOf(H.Position), zoneOf(targetPos)
+		if pz == tz then
+			st.arrivedAt = nil
+			return false
+		end
+		getgenv().noclip = true
+		if pz == "Under" then
+			-- Cặp 2: Under City -> Xoáy Nước
+			return gate(H, CFG.XOAY_WAIT_POS, CFG.XOAY_ENTRANCE_POS, 0.6)
+		elseif pz == "Sky3" then
+			-- Cặp 1: Sky3 -> Sky2
+			return gate(H, CFG.SKY_START_POS, CFG.SKY_ENTRANCE_POS, 0.7, function()
+				local hrp = getHRP()
+				if hrp and hrp.Position.Y < CFG.SKY3_Y then
+					hrp.CFrame = hrp.CFrame + Vector3.new(0, 30, 0)
+				end
+			end)
+		elseif tz == "Sky3" then
+			-- Cặp 1: Sky (1/2) -> Sky3
+			return climbSky3(H)
+		elseif tz == "Under" then
+			-- Cặp 2: Xoáy Nước -> Under City
+			return gate(H, CFG.UNDER_WAIT_POS, CFG.UNDER_ENTRANCE_POS, 0.6)
+		end
+		return false
+	end
+
+	-- ===== SEA 2: cặp 1 (Flamingo Mansion <-> Flamingo Room), cặp 2 (Cursed Ship <-> Door Ship) =====
+	local C2 = {
+		MANSION_WAIT = Vector3.new(-287, 328, 591),
+		MANSION_ENTRANCE = Vector3.new(-286.9859619140625, 306.13739013671875, 597.8905029296875),
+		ROOM_WAIT = Vector3.new(2285, 42, 911),
+		ROOM_ENTRANCE = Vector3.new(2284.9091796875, 15.537796020507812, 905.4727783203125),
+		MANSION_R = 900,
+		MANSION_MIN_Y = 200,
+		ROOM_R = 600,
+		DOOR_WAIT = Vector3.new(-6498, 106, -119),
+		SHIP_ENTRANCE = Vector3.new(923.2130126953125, 126.97599792480469, 32852.83203125),
+		SHIP_WAIT = Vector3.new(923, 125, 32853),
+		DOOR_ENTRANCE = Vector3.new(-6508.55810546875, 89.035003662109375, -132.83999633789062),
+		SHIP_Z = 20000,
+	}
+
+	local SHIP_FLAG = nil -- nếu biết tên cờ unlock của Cursed Ship trong GetUnlockables thì điền vào đây
+
+	local function horiz(a, b)
+		return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+	end
+
+	local function flamZone(pos)
+		if pos.Y > C2.MANSION_MIN_Y and horiz(pos, C2.MANSION_WAIT) < C2.MANSION_R then
+			return "Mansion"
+		end
+		if horiz(pos, C2.ROOM_WAIT) < C2.ROOM_R then
+			return "Room"
+		end
+		return nil
+	end
+
+	local function lift(cond, dy)
+		return function()
+			local hrp = getHRP()
+			if hrp and cond(hrp.Position) then
+				hrp.CFrame = hrp.CFrame + Vector3.new(0, dy, 0)
+			end
+		end
+	end
+
+	-- return true = tick này đã bị cổng xử lý, toTarget phải return
+	function Sea2Gate.Step(H, targetPos)
+		local pos = H.Position
+		local pShip, tShip = pos.Z > C2.SHIP_Z, targetPos.Z > C2.SHIP_Z
+
+		-- Cặp 2: Cursed Ship <-> Door Ship
+		if pShip ~= tShip then
+			if SHIP_FLAG and not getgenv().IsUnlocked(SHIP_FLAG) then
+				return false
+			end
+			getgenv().noclip = true
+			if tShip then
+				return gate(H, C2.DOOR_WAIT, C2.SHIP_ENTRANCE, 0.6, lift(function(p)
+					return p.Z > C2.SHIP_Z
+				end, 60))
+			end
+			return gate(H, C2.SHIP_WAIT, C2.DOOR_ENTRANCE, 0.6, lift(function(p)
+				return p.Z < C2.SHIP_Z
+			end, 30))
+		end
+		if pShip then
+			st.arrivedAt = nil
+			return false
+		end
+
+		-- Cặp 1: Flamingo Mansion <-> Flamingo Room (chỉ khi đã unlock Flamingo, giữ nguyên check cũ)
+		if not getgenv().IsUnlocked("FlamingoAccess") then
+			return false
+		end
+		local tz = flamZone(targetPos)
+		if tz then
+			local dM = (pos - C2.MANSION_WAIT).Magnitude
+			local dR = (pos - C2.ROOM_WAIT).Magnitude
+			if tz == "Mansion" and dR < dM then
+				getgenv().noclip = true
+				return gate(H, C2.ROOM_WAIT, C2.MANSION_ENTRANCE, 0.6, lift(function(p)
+					return flamZone(p) == "Mansion"
+				end, 30))
+			elseif tz == "Room" and dM < dR then
+				getgenv().noclip = true
+				return gate(H, C2.MANSION_WAIT, C2.ROOM_ENTRANCE, 0.6, lift(function(p)
+					return flamZone(p) == "Room"
+				end, 30))
+			end
+		end
+		st.arrivedAt = nil
+		return false
+	end
+end
+
+-- ===== SEA 3: Hydra / Castle on the Sea / Mansion / Tiki (hub-and-spoke, Castle là trung tâm) =====
+do
+	local Sea3Gate = {}
+	getgenv().Sea3Gate = Sea3Gate
+	local V3 = Vector3.new
+
+	-- điểm bay tới (theo Cobalt/bạn cung cấp)
+	local MW = V3(-12463.6025390625, 390, -7566.0830078125) -- chờ ở Mansion -> vào Castle
+	local ENT_CASTLE_M = V3(-5054, 315, -3178) -- entrance tới Castle (gọi từ Mansion)
+	local CW_H = V3(-5027.0302734375, 330, -3206.70361328125) -- chờ ở Castle -> vào Hydra
+	local ENT_HYDRA = V3(5661, 1013, -337)
+	local HW = V3(5650.94775390625, 120, -350.37918090820312) -- chờ ở Hydra -> vào Castle
+	local ENT_CASTLE_H = V3(-5023, 315, -3193) -- entrance tới Castle (gọi từ Hydra)
+	local CW_M = V3(-5060.41162109375, 330, -3193.224853515625) -- chờ ở Castle -> vào Mansion
+	local ENT_MANSION = V3(-12466, 375, -7549)
+	local TW = V3(-16797, 60, 290) -- chờ ở Tiki -> nhảy về Castle
+	local CT = V3(-5097, 317, -3178) -- chờ ở Castle -> nhảy sang Tiki
+
+	-- các điểm đại diện cho mỗi đảo (dùng để xác định "gần")
+	local REFS = {
+		Hydra = { V3(3399, 72, 1572), V3(5245, 602, 251), V3(5288, 1011, 392), V3(5661, 1013, -334), HW },
+		Castle = { V3(-5500, 314, -2855), ENT_CASTLE_M, ENT_CASTLE_H, CW_H, CW_M, CT },
+		Mansion = { V3(-12463, 375, -7549), V3(-12548, 337, -7481), MW },
+		Tiki = { V3(-16204, 9, 479), V3(-16456, 530, 436), TW },
+	}
+	-- điểm dùng để xác định ĐÍCH thuộc đảo nào (chặt hơn vì đích chỉ gate khi thật sự ở đó)
+	local DEST_REFS = {
+		Hydra = { V3(5245, 602, 251), V3(5288, 1011, 392), V3(5661, 1013, -334) },
+		Castle = { V3(-5500, 314, -2855), ENT_CASTLE_M, ENT_CASTLE_H },
+		Mansion = { V3(-12463, 375, -7549), V3(-12548, 337, -7481) },
+		Tiki = { V3(-16204, 9, 479), V3(-16456, 530, 436), TW },
+	}
+	local DEST_R = { Hydra = 1500, Castle = 1500, Mansion = 1500, Tiki = 2000 }
+	local NEAR_R = { Castle = 1500, Tiki = 2000 }
+	local MIN_GATE_DIST = 3000 -- đích gần hơn thế này thì bay thẳng (giữ đúng điều kiện cũ)
+
+	local function minDist(pos, refs)
+		local m = math.huge
+		for _, r in ipairs(refs) do
+			local d = (pos - r).Magnitude
+			if d < m then
+				m = d
+			end
+		end
+		return m
+	end
+
+	local function nearestHub(pos)
+		local best, bd
+		for name, refs in pairs(REFS) do
+			local d = minDist(pos, refs)
+			if not bd or d < bd then
+				best, bd = name, d
+			end
+		end
+		return best
+	end
+
+	local function destHub(pos)
+		for name, refs in pairs(DEST_REFS) do
+			if minDist(pos, refs) < DEST_R[name] then
+				if name == "Hydra" and pos.Y < 400 then
+					-- Hydar Island tầng thấp bay thẳng được, không cần cổng
+				elseif name == "Mansion" and pos.Y < 250 then
+				else
+					return name
+				end
+			end
+		end
+		return nil
+	end
+
+	local function isNear(pos, name)
+		return minDist(pos, REFS[name]) < NEAR_R[name]
+	end
+
+	-- ===== các bước =====
+	local function F(v) return { "fly", v } end
+	local function E(v) return { "ent", v } end
+	local function L(dy) return { "lift", dy } end
+	local function J(n) return { "jump", n } end
+	local W = { "wait" }
+
+	local PLAN = {
+		Hydra = {
+			Mansion = { F(MW), W, E(ENT_CASTLE_M), W, L(30), F(CW_H), W, E(ENT_HYDRA), W, L(30) },
+			Castle = { F(CW_H), W, E(ENT_HYDRA), W, L(30) },
+			Tiki = { F(TW), W, J("Castle"), F(CW_H), W, E(ENT_HYDRA), W, L(30) },
+		},
+		Castle = {
+			Mansion = { F(MW), W, E(ENT_CASTLE_M), W, L(30) },
+			Hydra = { F(HW), W, E(ENT_CASTLE_H), W, L(30) },
+			Tiki = { F(TW), W, J("Castle"), W, L(30) },
+		},
+		Mansion = {
+			Castle = { F(CW_M), W, E(ENT_MANSION), W, L(100) },
+			Tiki = { F(TW), W, J("Castle"), W, F(CW_M), W, E(ENT_MANSION), W, L(100) },
+			Hydra = { F(HW), W, E(ENT_CASTLE_H), W, F(CW_M), W, E(ENT_MANSION), W, L(100) },
+		},
+		Tiki = {
+			Castle = { F(CT), W, J("Tiki"), W, L(30) },
+			Mansion = { F(MW), W, E(ENT_CASTLE_M), W, F(CT), W, J("Tiki"), W, L(30) },
+			Hydra = { F(HW), W, E(ENT_CASTLE_H), W, L(30), F(CT), W, J("Tiki"), W, L(30) },
+		},
+	}
+	for _, byPlayer in pairs(PLAN) do
+		for _, plan in pairs(byPlayer) do
+			plan.needsEntrance = false
+			plan.needsTiki = false
+			for _, step in ipairs(plan) do
+				if step[1] == "ent" then
+					plan.needsEntrance = true
+				elseif step[1] == "jump" or (step[1] == "fly" and (step[2] == TW or step[2] == CT)) then
+					plan.needsTiki = true
+				end
+			end
+		end
+	end
+
+	local running, cancelled, cool, fails = false, false, 0, 0
+
+	local function flyTo(pos, radius, timeout)
+		radius = radius or 15
+		local t0 = tick()
+		while tick() - t0 < (timeout or 90) do
+			if cancelled then
+				return false
+			end
+			local hrp = getHRP()
+			if not hrp then
+				return false
+			end
+			if (hrp.Position - pos).Magnitude < radius then
+				return true
+			end
+			getgenv().noclip = true
+			I()
+			B(hrp, CFrame.new(pos), tonumber(Settings["Speed Tween "]) or 300, 8)
+			task.wait(0.15)
+		end
+		return false
+	end
+
+	local function doJump()
+		local ch = game:GetService("Players").LocalPlayer.Character
+		local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+		if not hum then
+			return
+		end
+		local hrp = getHRP()
+		local ff = hrp and hrp:FindFirstChild("FloatForce")
+		local saved = ff and ff.MaxForce
+		if ff then
+			ff.MaxForce = Vector3.new(0, 0, 0)
+		end
+		hum.Jump = true
+		pcall(function()
+			hum:ChangeState(Enum.HumanoidStateType.Jumping)
+		end)
+		local vim = game:GetService("VirtualInputManager")
+		vim:SendKeyEvent(true, "Space", false, game)
+		task.wait(0.1)
+		vim:SendKeyEvent(false, "Space", false, game)
+		task.wait(0.3)
+		if ff and ff.Parent and saved then
+			ff.MaxForce = saved
+		end
+	end
+
+	local function jumpUntil(name, timeout)
+		local t0 = tick()
+		while tick() - t0 < (timeout or 25) do
+			if cancelled then
+				return false
+			end
+			local hrp = getHRP()
+			if not hrp then
+				return false
+			end
+			if isNear(hrp.Position, name) then
+				return true
+			end
+			doJump()
+			task.wait(0.6)
+		end
+		return false
+	end
+
+	local function runPlan(plan)
+		for _, step in ipairs(plan) do
+			if cancelled then
+				return false
+			end
+			local k, a = step[1], step[2]
+			if k == "fly" then
+				if not flyTo(a) then
+					return false
+				end
+			elseif k == "wait" then
+				task.wait(0.6)
+			elseif k == "ent" then
+				I()
+				pcall(function()
+					game.ReplicatedStorage.Remotes.CommF_:InvokeServer("requestEntrance", a)
+				end)
+			elseif k == "lift" then
+				local hrp = getHRP()
+				if hrp then
+					hrp.CFrame = hrp.CFrame + Vector3.new(0, a, 0)
+				end
+			elseif k == "jump" then
+				if not jumpUntil(a) then
+					return false
+				end
+			end
+		end
+		return true
+	end
+
+	function Sea3Gate.Cancel()
+		cancelled = true
+	end
+
+	-- return true = cổng đã xử lý (hoặc đang bận), toTarget phải return
+	function Sea3Gate.Step(H, targetPos)
+		if running then
+			return true
+		end
+		if tick() < cool then
+			return false
+		end
+		local pos = H.Position
+		if (targetPos - pos).Magnitude < MIN_GATE_DIST then
+			return false
+		end
+		local dh = destHub(targetPos)
+		if not dh then
+			return false
+		end
+		local ph = nearestHub(pos)
+		if ph == dh then
+			return false
+		end
+		local plan = PLAN[dh] and PLAN[dh][ph]
+		if not plan then
+			return false
+		end
+		-- giữ check cũ: cổng Hydra/Castle/Mansion cần đã đánh Indra True Form
+		if plan.needsEntrance and not getgenv().IsUnlocked("DefeatedIndraTrueForm") then
+			return false
+		end
+		-- chuỗi nào đi qua điểm CT/TW (hoặc nhảy sang Tiki) chỉ dùng khi đã đánh boss Tiki
+		if plan.needsTiki and not getgenv().IsTikiBossKilled() then
+			return false
+		end
+
+		running, cancelled = true, false
+		getgenv().noclip = true
+		local ok, res = pcall(runPlan, plan)
+		running = false
+
+		local hrp = getHRP()
+		if ok and res and hrp and nearestHub(hrp.Position) == dh then
+			fails = 0
+		else
+			fails = fails + 1
+			if fails >= 2 then
+				fails = 0
+				cool = tick() + 30 -- fail 2 lần liên tiếp: nghỉ 30s để toTarget bay bình thường
+			end
+		end
+		return true
+	end
+end
+
+-- ===== CHECK UNLOCK LIVE (GetUnlockables) =====
+do
+	local cache, last = {}, {}
+	getgenv().IsUnlocked = function(flag)
+		if cache[flag] then
+			return true
+		end
+		if tick() - (last[flag] or 0) < 10 then
+			return false
+		end
+		last[flag] = tick()
+		local ok, res = pcall(function()
+			return game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("GetUnlockables")
+		end)
+		if getgenv().DebugUnlock then
+			print("[Unlock]", flag, ok, typeof(res), type(res) == "table" and tostring(res[flag]) or "-")
+		end
+		if ok and type(res) == "table" and res[flag] then
+			cache[flag] = true
+		end
+		return cache[flag] == true
+	end
+end
+
+-- ===== CHECK ĐÃ ĐÁNH BOSS TIKI (mở SubmarineWorkerSpeak) =====
+do
+	local cache, lastAsk = false, 0
+	getgenv().IsTikiBossKilled = function()
+		if cache then
+			return true
+		end
+		if tick() - lastAsk < 5 then
+			return false
+		end
+		lastAsk = tick()
+		local ok, res = pcall(function()
+			local ev = game:GetService("ReplicatedStorage").Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
+			return ev and ev:InvokeServer("AskKilledTikiBoss")
+		end)
+		getgenv().TikiBossRaw = res -- giá trị server trả về, dùng để kiểm tra
+		if getgenv().DebugTikiBoss then
+			print("[TikiBoss]", ok, typeof(res), tostring(res))
+		end
+		if ok and res == true then
+			cache = true
+		end
+		return cache
+	end
+end
+
 function toTarget(P, e)
 	LPH_ATTRIBUTES(VM(NONE))
 	if typeof(P) ~= "CFrame" then
@@ -3734,6 +4301,7 @@ function toTarget(P, e)
 			game.PlaceId == getgenv().CheckPlaceId
 			and (P.Position - Z).Magnitude <= 3000
 			and (Z - H.Position).Magnitude > 3000
+			and getgenv().IsTikiBossKilled()
 		then
 			local d = CFrame.new(
 				-16269.4082,
@@ -3809,11 +4377,27 @@ function toTarget(P, e)
 				end
 			end
 		end
+		if game.PlaceId == getgenv().CheckPlaceId3 and getgenv().Sea1Gate.Step(H, P.Position) then
+			return
+		end
+		if game.PlaceId == getgenv().CheckPlaceId2 and getgenv().Sea2Gate.Step(H, P.Position) then
+			return
+		end
+		if game.PlaceId == getgenv().CheckPlaceId and getgenv().Sea3Gate.Step(H, P.Position) then
+			return
+		end
 		local l, d, _
-		if Y >= 3000 then
+		if Y >= 3000 and game.PlaceId ~= getgenv().CheckPlaceId3 and game.PlaceId ~= getgenv().CheckPlaceId2 then
 			for o, y in pairs(Q) do
 				local Q = (P.Position - y).Magnitude
-				if Q <= 3000 and (not _ or Q < _) then
+				if
+					Q <= 3000
+					and (not _ or Q < _)
+					and not (
+						game.PlaceId == getgenv().CheckPlaceId
+						and (o == "Caslte On The Sea" or o == "Hydra" or o == "Mansion")
+					)
+				then
 					_, l, d = Q, o, y
 				end
 			end
