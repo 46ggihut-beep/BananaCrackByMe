@@ -4428,7 +4428,12 @@ do
 	}
 
 	-- gần nhất trong (các đảo tàu ngầm + các đảo cổng đang mở); trả về tên đảo tàu ngầm nếu nó thắng
+	local CAKE_ARENA = Vector3.new(-1990.67, 4532.97, -14973.67)
 	local function nearestNode(pos, onlyOpen)
+		-- arena Cake Prince nằm trên trời nên "gần nhất" bị lệch sang Chocolate Land -> coi như Cake Land
+		if (pos - CAKE_ARENA).Magnitude <= 1000 then
+			return "Cake Land"
+		end
 		local best, bd
 		for name, p in pairs(SUB_ISLANDS) do
 			local d = (pos - p).Magnitude
@@ -7059,28 +7064,35 @@ function FarmMethod()
 			if CheckNameBoss("Cake Prince") then
 				local V = CheckNameBoss("Cake Prince")
 
-				-- ===== THÊM: bay tới cổng -> delay 1.5s -> mới farm boss =====
-				local ARENA = Vector3.new(-1990.67, 4532.97, -14973.67)
+				-- ===== THÊM: bay tới cổng -> delay 1.5s -> check Y > 4000 mới farm boss, chưa thì bay lại cổng =====
 				local mirror = workspace.Map:FindFirstChild("CakeLoaf")
 					and workspace.Map.CakeLoaf:FindFirstChild("BigMirror")
 					and workspace.Map.CakeLoaf.BigMirror:FindFirstChild("Main")
 				local root = t.Character and t.Character:FindFirstChild("HumanoidRootPart")
 
-				-- chỉ chạy khi đang ở ngoài arena
-				if mirror and root and (ARENA - root.Position).Magnitude > 1000 then
+				if mirror and root and root.Position.Y <= 4000 then
 					repeat
-						task.wait()
+						-- bay tới cổng
+						repeat
+							task.wait()
+							root = t.Character and t.Character:FindFirstChild("HumanoidRootPart")
+							if not root then
+								break
+							end
+							toTarget(V.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0)) -- toTarget tự bay tới cổng như cũ
+						until (mirror.Position - root.Position).Magnitude <= 20
+							or root.Position.Y > 4000
+							or not IsMobAlive(V)
+							or not Settings["Start Farm"]
+							or not StackFarm
+						task.wait(1.5) -- delay sau khi tới cổng
 						root = t.Character and t.Character:FindFirstChild("HumanoidRootPart")
-						if not root then
-							break
-						end
-						toTarget(V.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0)) -- toTarget tự bay tới cổng như cũ
-					until (mirror.Position - root.Position).Magnitude <= 20
-						or (ARENA - root.Position).Magnitude <= 1000
+					-- check sau delay: Y chưa > 4000 thì lặp lại bay vào cổng
+					until not root
+						or root.Position.Y > 4000
 						or not IsMobAlive(V)
 						or not Settings["Start Farm"]
 						or not StackFarm
-					task.wait(1.5) -- delay sau khi tới cổng
 				end
 				-- ===== HẾT PHẦN THÊM =====
 
