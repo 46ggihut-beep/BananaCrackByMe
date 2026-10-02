@@ -1,4 +1,4 @@
-if getgenv().__BF_LOADED then
+if getgenv().__BF_LOADED == game.JobId then
 	return getgenv().__BF_RESULT
 end
 
@@ -11759,6 +11759,86 @@ function manageTween(J, F, q, c)
 	end)
 	return D
 end
+-- ===== BOAT LIFT: ra khỏi Tiki bằng đường trên trời để né model đảo =====
+-- Flow: ngồi vào thuyền -> bay lên (Y gốc + 200) -> bay ra biển ở độ cao đó
+--       -> cách Tiki 1000 studs thì hạ xuống Y gốc -> tiếp tục bay tới điểm farm.
+-- Chỉ áp dụng cho tween "TweenBoat" ở Sea 3 khi thuyền đang trong 1000 studs quanh Tiki.
+-- Tắt bằng getgenv().BoatLiftOverTiki = false
+do
+	local manageTweenRaw = manageTween
+	local TIKI_CENTER = Vector3.new(-16456.4629, 530.251953, 436.231812)
+	local LIFT_HEIGHT, CLEAR_DIST, PHASE_TIMEOUT = 200, 1000, 20
+	local liftState = setmetatable({}, { __mode = "k" })
+
+	local function flat(v)
+		return Vector3.new(v.X, 0, v.Z)
+	end
+
+	local function liftTarget(seat, T)
+		if getgenv().BoatLiftOverTiki == false or game.PlaceId ~= getgenv().CheckPlaceId then
+			return T
+		end
+		local S = seat.Position
+		local tikiDist = flat(S - TIKI_CENTER).Magnitude
+		-- đích nằm trong vùng Tiki (vd quay về Tiki) thì không cần né
+		if flat(T.Position - TIKI_CENTER).Magnitude < CLEAR_DIST then
+			liftState[seat] = nil
+			return T
+		end
+		local st = liftState[seat]
+		if not st then
+			if tikiDist >= CLEAR_DIST then
+				return T
+			end
+			st = { base = S.Y, phase = "lift", t0 = tick() }
+			liftState[seat] = st
+		end
+		if st.phase == "done" then
+			if tikiDist >= CLEAR_DIST then
+				liftState[seat] = nil -- ra khỏi Tiki rồi, lần sau từ Tiki ra sẽ chạy lại
+			end
+			return T
+		end
+		if tick() - st.t0 > PHASE_TIMEOUT then
+			st.phase = "done" -- kẹt quá lâu ở 1 bước: bỏ qua, bay thẳng như cũ
+			return T
+		end
+
+		local liftY = st.base + LIFT_HEIGHT
+		if st.phase == "lift" then
+			if S.Y >= liftY - 8 then
+				st.phase, st.t0 = "out", tick()
+			else
+				return CFrame.new(S.X, liftY, S.Z) * seat.CFrame.Rotation
+			end
+		end
+		if st.phase == "out" then
+			if tikiDist >= CLEAR_DIST then
+				st.phase, st.t0 = "down", tick()
+			else
+				return CFrame.new(T.X, liftY, T.Z) * T.Rotation
+			end
+		end
+		if st.phase == "down" then
+			if S.Y <= st.base + 8 then
+				st.phase = "done"
+				return T
+			end
+			return CFrame.new(S.X, st.base, S.Z) * T.Rotation
+		end
+		return T
+	end
+
+	function manageTween(J, F, q, c)
+		if J and J.Name == "VehicleSeat" and (c == nil or c == "TweenBoat") and typeof(F) == "CFrame" then
+			local ok, nf = pcall(liftTarget, J, F)
+			if ok and nf then
+				F = nf
+			end
+		end
+		return manageTweenRaw(J, F, q, c)
+	end
+end
 local function l(y, P, Y)
 	if not (y and (y:FindFirstChild("VehicleSeat"))) then
 		return
@@ -21098,23 +21178,71 @@ a.CreateBind({ Title = "Toggle GUI", Key = Enum.KeyCode.LeftControl }, function(
 		end
 	end
 end)
+-- ===== AUTO LOAD SCRIPT: queue_on_teleport để tự chạy lại sau khi hop server / rejoin do disconnect =====
+-- Không cần Key, không cần bỏ vào autoexec. Nguồn script (ưu tiên từ trên xuống):
+--   1) getgenv().AutoLoadURL = "link raw script" (đặt trước khi chạy, nếu bạn chạy script bằng link)
+--   2) bản copy script tự lưu ở "Banana Cat Hub/AutoLoad.lua" (tự lưu lúc chạy nếu executor cho đọc source)
+--   3) loader gốc banana-hub (chỉ khi có Key)
 spawn(function()
 	pcall(function()
-		if not (Settings["Auto Load Script"] and getgenv().Key) then
-			repeat
-				wait()
-			until Settings["Auto Load Script"] and getgenv().Key
-		end
-		local T = if syn then syn.queue_on_teleport else queue_on_teleport
-		if not T then
+		local queue = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
+		if not queue then
+			warn("[AutoLoad] executor không hỗ trợ queue_on_teleport")
 			return
 		end
-		T(
-			string.format(
-				' repeat wait() until game:IsLoaded()\10 getgenv().Key = %q\10 getgenv().__BANANA_SCRIPT_ROUTE = "bf_main"\10 return loadstring(game:HttpGet("https://banana-hub.xyz/loader/banana.lua"))()\10 ',
-				getgenv().Key
-			)
-		)
+		local AUTO_FILE = FolderName .. "/AutoLoad.lua"
+
+		-- tự lưu source của chính script này (best-effort, tuỳ executor có trả full source hay không)
+		pcall(function()
+			local src = debug.getinfo(1, "S").source
+			if type(src) == "string" and #src > 100000 and src:find("Auto Load Script", 1, true) then
+				if not isfolder(FolderName) then
+					makefolder(FolderName)
+				end
+				writefile(AUTO_FILE, src)
+			end
+		end)
+
+		local function body()
+			local url = getgenv().AutoLoadURL
+			if type(url) == "string" and #url > 0 then
+				return string.format('loadstring(game:HttpGet(%q))()', url)
+			end
+			local okFile, hasFile = pcall(isfile, AUTO_FILE)
+			if okFile and hasFile then
+				return string.format('loadstring(readfile(%q))()', AUTO_FILE)
+			end
+			if getgenv().Key then
+				return 'getgenv().__BANANA_SCRIPT_ROUTE = "bf_main"\nloadstring(game:HttpGet("https://banana-hub.xyz/loader/banana.lua"))()'
+			end
+			return nil
+		end
+
+		local queued = false
+		while not queued do
+			if Settings["Auto Load Script"] then
+				local code = body()
+				if code then
+					local cfgPath = FolderName .. "/" .. SaveFileName
+					local header = 'repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer\n'
+						.. string.format(
+							'local ok, cfg = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(%q)) end)\n',
+							cfgPath
+						)
+						.. 'if ok and type(cfg) == "table" and cfg["Auto Load Script"] == false then return end\n' -- đã tắt toggle thì không chạy
+					if getgenv().Key then
+						header = header .. string.format("getgenv().Key = %q\n", getgenv().Key)
+					end
+					queue(header .. code)
+					queued = true
+					print("[AutoLoad] đã queue script cho lần hop / rejoin tiếp theo")
+				else
+					warn("[AutoLoad] chưa có nguồn script: đặt getgenv().AutoLoadURL = 'link raw' rồi chạy lại")
+					task.wait(10)
+				end
+			end
+			task.wait(1)
+		end
 	end)
 end)
 loadstring(
@@ -21264,4 +21392,4 @@ if not getgenv().BananaCatMainLoop then
 		end
 	end)
 end
-getgenv().__BF_LOADED = true
+getgenv().__BF_LOADED = game.JobId
