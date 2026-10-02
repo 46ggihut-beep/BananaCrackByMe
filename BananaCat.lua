@@ -4197,7 +4197,7 @@ do
 		return true
 	end
 
-	-- Main -> Sky3: bay tới Sky2, cầm melee, click liên tục tại UDim2(0.15,0.15) tới khi Y > SKY3_Y
+	-- Main -> Sky3: bay tới Sky2, cầm weapon đã chọn ở Setting Farm (Melee/Sword: click tại UDim2(0.15,0.15); Blox Fruit: spam skill) tới khi Y > SKY3_Y
 	local function startClickLoop()
 		if st.clicking then
 			return
@@ -4210,14 +4210,20 @@ do
 				if not hrp or hrp.Position.Y > CFG.SKY3_Y then
 					break
 				end
+				local weaponType = Settings["Select Weapon"] or "Melee"
 				if tick() - lastEquip >= 0.5 then
 					lastEquip = tick()
-					local name = NameWeapon and NameWeapon("Melee")
+					local name = NameWeapon and NameWeapon(weaponType)
 					if name and equiptool then
 						equiptool(name)
 					end
 				end
-				doClick()
+				if weaponType == "Blox Fruit" and type(UseSkillonlyFruit) == "function" then
+					-- Blox Fruit: spam skill thay vì click
+					pcall(UseSkillonlyFruit)
+				else
+					doClick()
+				end
 				task.wait()
 			end
 			st.clicking = false
@@ -5959,8 +5965,12 @@ function BringMob(Q)
 		return
 	end
 	if Q and E ~= Q then
+		local spawnPart = DetectPartMobBring(Q.Name, Q, true)
+		if not spawnPart then
+			return
+		end
 		E = Q
-		l = DetectPartMobBring(Q.Name, Q, true).CFrame
+		l = spawnPart.CFrame
 		local d = game:GetService("Players").LocalPlayer.Data.Race.Value == "Cyborg"
 			and (t.Character:FindFirstChild("RaceTransformed"))
 			and t.Character.RaceTransformed.Value
@@ -6210,41 +6220,34 @@ SettingFarmMainSection.CreateToggle(
 		SaveSettings("Auto Dodge Skill Mobs", I)
 	end
 )
--- Fix: dùng AttackingMob (set bởi sizepart) giống Vxeze — biến local I cũ không bao giờ được gán
-if not getgenv().__BNN_DODGE_SKILL_HOOK then
-	getgenv().__BNN_DODGE_SKILL_HOOK = true
-	game:GetService("Workspace").Enemies.DescendantAdded:Connect(function(descendant)
-		local mob = AttackingMob
-		local flag = Settings["Auto Dodge Skill Mobs"]
-			and mob
-			and mob.Parent
-			and not Doding
-			and not getgenv().Doding
-		if flag then
-			flag = descendant.Name == "BodyGyro"
-				or descendant.Name == "BodyPosition"
-				or descendant.Name == "KiBlastFireShort"
-		end
-		-- skill object nằm trong model mob: Parent.Parent == mob (giống Vxeze)
-		if flag and descendant.Parent and descendant.Parent.Parent == mob then
-			getgenv().Doding = true
-			Doding = true
-			getgenv().ReadyToDodge = true
-			ReadyToDodge = true
-			local started = tick()
-			repeat
-				task.wait()
-			until not descendant or not descendant.Parent or tick() - started > 14
-			if tick() - started < 2 then
-				task.wait(0.5)
+game:GetService("Workspace").Enemies.DescendantAdded:Connect(function(descendant)
+	local flag = Settings["Auto Dodge Skill Mobs"] and AttackingMob and AttackingMob.Parent and not Doding
+
+	if flag then
+		flag = descendant.Name == "BodyGyro" or descendant.Name == "BodyPosition" or descendant.Name == "KiBlastFireShort"
+	end
+
+	if flag and descendant.Parent.Parent == AttackingMob then
+		Doding = true
+		ReadyToDodge = true
+		local now = tick()
+
+		while true do
+			wait()
+			if not (not descendant or not descendant.Parent or tick() - now > 14) then
+				continue
 			end
-			getgenv().Doding = false
-			Doding = false
-			getgenv().ReadyToDodge = false
-			ReadyToDodge = false
+			break
 		end
-	end)
-end
+
+		if tick() - now < 2 then
+			wait(0.5)
+		end
+
+		Doding = false
+		ReadyToDodge = false
+	end
+end)
 SettingFarmMainSection.CreateToggle(
 	{ Title = "Teleport Y if low health", Desc = nil, Default = Settings["Teleport Y"] or false },
 	function(I)
@@ -8595,34 +8598,7 @@ task.spawn(function()
 	end
 end)
 FarmotherMain = Main.CreatePage({ Page_Name = "Farming Other", Page_Title = "Farming Other" })
-
---[[
-================================================================================
-  BananaCat Hub - Secret Quest (39 Hidden Quests) Integration
-================================================================================
-  Gắn vào tab "Farming Other", đặt ở ĐẦU tab.
-
-  CÁCH DÙNG:
-  1. Mở BananaCat.lua
-  2. Tìm dòng:  FarmotherMain = Main.CreatePage({ Page_Name = "Farming Other" ...
-  3. Dán TOÀN BỘ file này NGAY SAU dòng đó (trước EventEasterSection)
-
-  Shim map:
-    Vxeze              -> BananaCat
-    localPlayer        -> t
-    ToTarget           -> toTarget
-    SizePart           -> sizepart
-    BringMob           -> BringMob
-    ClickM1            -> getgenv().ClickM1
-    Place_Id.sea1()    -> PlaceId == CheckPlaceId3
-    VxezeNotify        -> A.CreateNoti
-    StackFarmOther     -> StackFarmOther / getgenv().StackFarmOther
-    EquipTool          -> equiptool
-    UsedualFlock       -> UsedualFlock
-    HopServer          -> HopServer
-    GetInventoryItems  -> B() inventory helper (local shim)
-================================================================================
-]]
+-- ===== Secret Quest (39 hidden quests) - thay thế Event Easter =====
 
 -- ========== SHIMS (map Vxeze -> BananaCat) ==========
 do
@@ -8759,65 +8735,35 @@ do
 
 	-- ReplicatedStorage alias if missing
 	ReplicatedStorage = ReplicatedStorage or game:GetService("ReplicatedStorage")
-end
 
+	-- Helper thiếu trong BananaCat (lấy từ Vxeze)
+	VirtualInputManager = VirtualInputManager or game:GetService("VirtualInputManager")
+	NoclipChanged = NoclipChanged or setmetatable({}, { __mode = "k" })
 
--- ========== Missing helpers (were outer-scope in Vxeze) ==========
-FormatMagnetTime = FormatMagnetTime or function(sec)
-	sec = math.max(0, math.floor(tonumber(sec) or 0))
-	local h = math.floor(sec / 3600)
-	local m = math.floor((sec % 3600) / 60)
-	local s = sec % 60
-	if h > 0 then
-		return string.format("%dh %dm %ds", h, m, s)
-	elseif m > 0 then
-		return string.format("%dm %ds", m, s)
+	FormatMagnetTime = FormatMagnetTime or function(n)
+		n = math.floor(tonumber(n) or 0)
+		return string.format("%02d:%02d", n // 60, n % 60)
 	end
-	return string.format("%ds", s)
-end
 
--- SeaOnly: on non-Sea1, freeze labels to a fixed prefix; return true only on Sea1
-SeaOnly = SeaOnly or function(label, prefix, seas)
-	seas = seas or { 1 }
-	local ok = false
-	for _, s in ipairs(seas) do
-		if s == 1 and Place_Id.sea1 and Place_Id.sea1() then ok = true break end
-		if s == 2 and Place_Id.sea2 and Place_Id.sea2() then ok = true break end
-		if s == 3 and Place_Id.sea3 and Place_Id.sea3() then ok = true break end
-	end
-	if not ok then
+	SeaOnly = SeaOnly or function(label, title, seas)
+		local cur = Place_Id.sea1() and 1 or Place_Id.sea2() and 2 or Place_Id.sea3() and 3 or 0
+		for _, s in ipairs(seas) do
+			if s == cur then
+				return true
+			end
+		end
+		local names = {}
+		for _, s in ipairs(seas) do
+			table.insert(names, "Sea " .. s)
+		end
 		if label and label.SetText then
-			pcall(function() label.SetText(prefix .. " : (Sea 1 only)") end)
+			label.SetText(title .. " : Not in " .. (cur > 0 and ("Sea " .. cur) or "Unknown") .. ", go to " .. table.concat(names, " or "))
 		end
 		return false
 	end
-	return true
 end
-
-NoclipChanged = NoclipChanged or {}
-TweenHoldUntil = TweenHoldUntil or 0
-AimForceUntil = AimForceUntil or 0
-
--- Safer ClickM1 / SizePart
-if type(ClickM1) ~= "function" then
-	ClickM1 = function(...)
-		local f = getgenv().ClickM1
-		if type(f) == "function" then return f(...) end
-	end
-end
-if type(SizePart) ~= "function" then
-	SizePart = sizepart or function() end
-end
-if type(UsedualFlock) ~= "function" then
-	UsedualFlock = function() end
-end
-
 
 -- ========== UI: đầu tab Farming Other ==========
-if not FarmotherMain then
-	warn("[SecretQuest] FarmotherMain chưa tồn tại — dán block này SAU dòng CreatePage Farming Other")
-	return
-end
 
 HiddenEventSection = FarmotherMain.CreateSection("Secret Quest")
 StatusHiddenProgress = HiddenEventSection.CreateLabel({ Title = "Secret Quest : 0/39 Quests" })
@@ -9800,23 +9746,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		HiddenDodge.untilTime = 0
 	end
 
-	GetHiddenFarmCFrame = function(c)
-		if not c or not c.Parent then
-			local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-			return hrp and hrp.CFrame or CFrame.new()
-		end
-		local n = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
-		if not n then
-			local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-			return hrp and hrp.CFrame or CFrame.new()
-		end
-		local L = Settings["Select Weapon"] == "Blox Fruit"
-		local U = HiddenEvent.farmHeight or (L and (getgenv().YPosFruit or 20) or 20)
-		if IsHiddenDodging() then
-			U = U + (IsHiddenBoss(c) and 40 or 25)
-		end
-		return n.CFrame * CFrame.new(L and -7 or 7, U, 0)
-	end
+	GetHiddenFarmCFrame = function(c)local n,L=c.HumanoidRootPart,Settings["Select Weapon"]=="Blox Fruit";local U=HiddenEvent.farmHeight or L and(getgenv().YPosFruit or 20)or 20;return n.CFrame*CFrame.new(L and-7 or 7,if IsHiddenDodging()then U+(IsHiddenBoss(c)and 40 or 25)else U,0);end
 
 	KillHiddenEnemy = function(fighting)
 		local now = tick()
@@ -13624,14 +13554,17 @@ end)]])
 
 				if (progress.SecondsRemaining or 0) > 0 then
 					local time_ = lookout.time
-					local n = progress.SecondsRemaining - tick() - time_
+					-- còn lại = giây server báo - thời gian đã trôi qua kể từ lúc hỏi
+					local n = progress.SecondsRemaining - (tick() - time_)
 
-					if n > 300 then
-						HiddenEvent.retryOverride = HiddenEvent.retryOverride or {}
-						HiddenEvent.retryOverride.Lookout = n - 60
+					if n > 0 then
+						-- nhớ giờ Captain sẵn sàng để quay lại làm ngay khi tới giờ
+						HiddenEvent.readyAt = HiddenEvent.readyAt or {}
+						HiddenEvent.readyAt.Lookout = tick() + n
 					end
 
-					return "Captain needs time (" .. FormatMagnetTime(math.max(0, n)) .. ")", n > 300
+					-- chưa tới giờ => skip để làm quest khác (không đứng chờ)
+					return "Captain needs time (" .. FormatMagnetTime(math.max(0, n)) .. ")", n > 0
 				end
 
 				local experiencedCaptain = workspace.NPCs:FindFirstChild("Experienced Captain")
@@ -14240,6 +14173,11 @@ end)]])
 	end
 
 	HiddenRetryDelay = function(arg)
+		local readyAt = HiddenEvent.readyAt and HiddenEvent.readyAt[arg.Name]
+		if readyAt then
+			-- biết chính xác bao giờ làm được -> chỉ skip tới lúc đó
+			return math.max(readyAt - tick(), 5)
+		end
 		local retryOverride = HiddenEvent.retryOverride and HiddenEvent.retryOverride[arg.Name]
 		if retryOverride then
 			HiddenEvent.retryOverride[arg.Name] = nil
@@ -14349,6 +14287,65 @@ end)]])
 		HiddenNotify(current .. " got stuck on \"" .. tostring(stall.step) .. "\", trying another quest", current .. "stall", "warning")
 	end
 
+	-- Quest đang bị skip (chờ) mà đã làm được => gỡ skip + đẩy lên đầu hàng đợi
+	HiddenWakeBoost = function(name)
+		HiddenEvent.readyBoost = HiddenEvent.readyBoost or {}
+		return tick() < (HiddenEvent.readyBoost[name] or 0)
+	end
+
+	WakeHiddenQuests = function(progress, hint)
+		HiddenEvent.waiting = HiddenEvent.waiting or {}
+		HiddenEvent.readyBoost = HiddenEvent.readyBoost or {}
+		HiddenEvent.readyAt = HiddenEvent.readyAt or {}
+		HiddenEvent.wokeMoment = HiddenEvent.wokeMoment or {}
+		HiddenEvent.wakeCheck = HiddenEvent.wakeCheck or {}
+
+		local function wake(quest, why)
+			if HiddenEvent.current == quest.Name then
+				return
+			end
+			HiddenEvent.skipped[quest.Name] = nil
+			HiddenEvent.readyAt[quest.Name] = nil
+			HiddenEvent.readyBoost[quest.Name] = tick() + 300
+			HiddenEvent.wakeCheck[quest.Name] = tick() + 60
+			HiddenNotify(quest.Name .. " is ready (" .. why .. "), going back", quest.Name .. "wake", "found")
+		end
+
+		for _, quest in ipairs(HiddenQuests) do
+			local name = quest.Name
+			local key = "Sea1/" .. quest.Island .. "/" .. name
+			local skipped = (HiddenEvent.skipped[name] or 0) > tick()
+			local blocked = HiddenEvent.waiting[name] ~= nil or HiddenEvent.readyAt[name] ~= nil
+
+			if progress[key] ~= true and skipped and blocked and tick() >= (HiddenEvent.wakeCheck[name] or 0) then
+				-- (a) tới giờ hẹn (vd Lookout: Captain hết cooldown)
+				local readyAt = HiddenEvent.readyAt[name]
+				if readyAt and tick() >= readyAt then
+					wake(quest, "timer done")
+				else
+					-- (b) moment của quest vừa load
+					local moment = GetHiddenMoment(name)
+					local up = moment and (not quest.HintIsland or moment.Active)
+					if up and HiddenEvent.wokeMoment[name] ~= moment then
+						HiddenEvent.wokeMoment[name] = moment
+						wake(quest, "quest appeared")
+					elseif not up then
+						HiddenEvent.wokeMoment[name] = nil
+						-- (c) điều kiện Precheck đã thoả (đêm, boss hint, ...)
+						if quest.Precheck and not readyAt and tick() >= (HiddenEvent.precheckAt and HiddenEvent.precheckAt[name] or 0) then
+							HiddenEvent.precheckAt = HiddenEvent.precheckAt or {}
+							HiddenEvent.precheckAt[name] = tick() + 10
+							local ok, pass = pcall(quest.Precheck, hint)
+							if ok and pass == true then
+								wake(quest, "conditions met")
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
 	AutoHiddenEvent = function()
 		WatchHiddenAnnouncements()
 		LoadHiddenSkip()
@@ -14369,6 +14366,8 @@ end)]])
 		if flag2 then
 			flag2 = (tonumber(v7.Seconds) or 0) > 180
 		end
+
+		pcall(WakeHiddenQuests, v6, v7)
 
 		local tbl9 = {}
 		local tbl10 = {}
@@ -14395,6 +14394,7 @@ end)]])
 				HiddenEvent.skipped[v8.Name] = nil
 			else
 				local hintIsland = v8.HintIsland
+				local readyBoost = HiddenWakeBoost(v8.Name)
 
 				if hintIsland then
 					active = active and active.Active
@@ -14409,7 +14409,10 @@ end)]])
 					hintIsland = hintIsland or flag and not flag2 and IsHiddenBossHinted(v7, v8.HintIsland, v8.BossNames)
 				end
 
-				if hintIsland then
+				if readyBoost then
+					-- quest vừa hết chờ: ưu tiên làm trước (sau Rescue Hasan)
+					tbl10[v8] = -1.5
+				elseif hintIsland then
 					tbl10[v8] = -1
 					HiddenEvent.skipped[v8.Name] = nil
 				elseif tick() - ((HiddenEvent.announced or {})[v8.Name] or 0) < 600 then
@@ -14593,6 +14596,9 @@ end)]])
 				else
 					HiddenEvent.waiting[v8.Name] = nil
 					HiddenEvent.waitingSince = nil
+					if HiddenEvent.readyAt then
+						HiddenEvent.readyAt[v8.Name] = nil
+					end
 				end
 
 				return
@@ -14707,19 +14713,13 @@ end)]])
 					return
 				end
 
-				local v6 = GetHiddenProgress(true) or {}
+				local v6 = GetHiddenProgress()
 				local n = 0
 				local doneCount = 0
 
 				for _, v7 in pairs(v6) do
 					n += 1
-					if v7 == true or (type(v7) == "table" and v7.Completed) then
-						doneCount += 1
-					end
-				end
-				-- Prefer ReportHiddenDone counter when available
-				if type(HiddenEvent.done) == "number" and HiddenEvent.done > doneCount then
-					doneCount = HiddenEvent.done
+					doneCount += v7 == true and 1 or 0
 				end
 
 				if HiddenEvent.doneCount ~= doneCount then
@@ -14727,26 +14727,20 @@ end)]])
 					HiddenEvent.doneAt = tick()
 				end
 
-				pcall(function()
-					StatusHiddenProgress.SetText(string.format("Secret Quest : %d/39 Quests", doneCount))
-				end)
-				pcall(function()
-					StatusHiddenQuest.SetText("Title Quest : " .. tostring(HiddenEvent.current or "None"))
-				end)
-				pcall(function()
-					StatusHiddenStep.SetText("Doing Quest : " .. tostring((Settings["Auto Secret Quest"] and HiddenEvent.step) or "None"))
-				end)
+				StatusHiddenProgress.SetText(string.format("Secret Quest : %d/39 Quests", doneCount))
+				StatusHiddenQuest.SetText("Title Quest : " .. (HiddenEvent.current or "None"))
+				StatusHiddenStep.SetText("Doing Quest : " .. (Settings["Auto Secret Quest"] and HiddenEvent.step or "None"))
 
 				if Place_Id.sea1() then
-					local okHint, v7 = pcall(GetHiddenRaidHint)
-					v7 = okHint and v7 or {}
-					local boss = v7 and v7.Boss
+					local v7 = GetHiddenRaidHint()
+					local setText = StatusHiddenBoss.SetText
+					local boss = v7.Boss
+
 					if boss then
-						boss = tostring(v7.Boss) .. " on " .. tostring(v7.Island) .. " in " .. FormatMagnetTime(tonumber(v7.Seconds) or 0)
+						boss = v7.Boss .. " on " .. tostring(v7.Island) .. " in " .. FormatMagnetTime(tonumber(v7.Seconds) or 0)
 					end
-					pcall(function()
-						StatusHiddenBoss.SetText("Title Awakened Boss : " .. tostring(boss or "None"))
-					end)
+
+					setText("Title Awakened Boss : " .. (boss or "None"))
 				end
 			end)
 		end
@@ -14863,8 +14857,6 @@ HiddenEventSection.CreateToggle({
 end)
 
 print("[BananaCat] Secret Quest (39) module loaded — section ở đầu Farming Other")
-
-
 FishingSection = FarmotherMain.CreateSection("Fishing")
 FishingSection.CreateToggle(
 	{ Title = "Change Size Reel", Desc = nil, Default = Settings["Change Size Reel"] or false },
@@ -15083,6 +15075,7 @@ local function y()
 		getgenv().delaytimeBiting = nil
 	end
 end
+RunFishingCycle = y
 local function _(V, P)
 	local Y, H = 1 / 0
 	for C, J in ipairs((P or (workspace:WaitForChild("Map"))):GetDescendants()) do
@@ -18302,52 +18295,10 @@ function TurnOffNoclipBoat(P)
 		end
 	end
 end
--- Tim Cannon (phao) con trong tren thuyen cua friend da chon (cung logic voi checkboatMulti cua Multi Find Leviathan)
-function GetFriendBoatCannon()
-	local owner = Settings["Select Friend"]
-	if not owner then
-		return nil
-	end
-	for _, boat in ipairs(game:GetService("Workspace").Boats:GetChildren()) do
-		if boat:IsA("Model") then
-			local o, hum = boat:FindFirstChild("Owner"), boat:FindFirstChild("Humanoid")
-			if o and tostring(o.Value) == owner and hum and hum.Value > 0 then
-				for _, c in ipairs(boat:GetChildren()) do
-					local seat = c.Name == "Cannon" and c:FindFirstChild("Seat")
-					if seat and not seat:FindFirstChild("SeatWeld") then
-						return c
-					end
-				end
-			end
-		end
-	end
-	return nil
-end
 function BuyBoatAndTeleBoat(P)
 	local Y = checkboat()
 	if Settings["Auto Sea Event With Friend"] and Settings["Auto Sea Event"] then
-		-- San cung ban: uu tien bay toi Cannon tren thuyen cua friend, khong co cannon trong thi bam theo friend
-		local char = t.Character
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum and hum.Sit then
-			-- da ngoi tren cannon -> dung toTarget (no se nhay khoi ghe), chi huy tween neu con
-			local hrp = char:FindFirstChild("HumanoidRootPart")
-			if hrp and hrp:FindFirstChild("FloatForce") then
-				TweenManager.CancelCurrent()
-			end
-			return
-		end
-		local cannon = GetFriendBoatCannon()
-		if cannon then
-			toTarget(cannon.Seat.CFrame)
-		else
-			-- khong co cannon trong (chua co thuyen / cannon co nguoi ngoi) -> bay bam theo friend nhu cu
-			local fp = game:GetService("Players"):FindFirstChild(Settings["Select Friend"] or "")
-			local fhrp = fp and fp.Character and fp.Character:FindFirstChild("HumanoidRootPart")
-			if fhrp then
-				toTarget(fhrp.CFrame)
-			end
-		end
+		toTarget(game:GetService("Players")[Settings["Select Friend"]].Character.HumanoidRootPart.CFrame)
 		return
 	end
 	if not Settings["Auto Sea Event"] and not P then
