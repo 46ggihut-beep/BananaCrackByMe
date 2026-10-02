@@ -323,27 +323,53 @@ function FireButton(b)
 		game:GetService("GuiService").SelectedObject = nil
 	end)
 end
-repeat
-	wait()
-until game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
-	or (game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main"))
-local b = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
-	or (game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main"))
-repeat
-	wait()
-until b:FindFirstChild("ChooseTeam")
-repeat
-	task.wait()
-	pcall(function()
-		local choose = b:FindFirstChild("ChooseTeam")
-		if choose then
+-- Check phe: da o Pirates/Marines thi bo qua buoc join phe, chua co phe thi moi chay logic join
+local function HasTeam()
+	local t = game:GetService("Players").LocalPlayer.Team
+	return t ~= nil and (t.Name == "Pirates" or t.Name == "Marines")
+end
+do
+	-- Team co the chua replicate ngay sau DataLoaded -> cho toi da 3s truoc khi ket luan la chua co phe
+	local t0 = tick()
+	repeat
+		wait(0.25)
+	until HasTeam() or tick() - t0 > 3
+end
+if not HasTeam() then
+	repeat
+		wait()
+	until game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
+		or (game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main"))
+	local b = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
+		or (game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main"))
+	local waitUI = tick()
+	repeat
+		wait()
+	until b:FindFirstChild("ChooseTeam") or HasTeam() or tick() - waitUI > 15
+	repeat
+		task.wait()
+		pcall(function()
+			local choose = b:FindFirstChild("ChooseTeam")
+			if choose and not HasTeam() then
+				local isPirate = Settings["Select Team"] == "Pirate"
+				FireButton(choose.Container[isPirate and "Pirates" or "Marines"].Frame.TextButton)
+				wait(1)
+			end
+		end)
+	until HasTeam() or not b.Parent or not b:FindFirstChild("ChooseTeam") or not b.ChooseTeam.Visible
+	-- fallback: GUI khong click duoc thi goi thang remote SetTeam
+	if not HasTeam() then
+		pcall(function()
 			local isPirate = Settings["Select Team"] == "Pirate"
-			FireButton(choose.Container[isPirate and "Pirates" or "Marines"].Frame.TextButton)
-			wait(1)
-		end
-	end)
-until not b.Parent or not b:FindFirstChild("ChooseTeam") or not b.ChooseTeam.Visible
-game:GetService("GuiService").SelectedObject = nil
+			game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", isPirate and "Pirates" or "Marines")
+		end)
+		local t1 = tick()
+		repeat
+			wait(0.25)
+		until HasTeam() or tick() - t1 > 5
+	end
+	game:GetService("GuiService").SelectedObject = nil
+end
 repeat
 	wait()
 until game:IsLoaded() and game.Players.LocalPlayer
