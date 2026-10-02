@@ -12058,10 +12058,52 @@ function TurnOffNoclipBoat(P)
 		end
 	end
 end
+-- Tim Cannon (phao) con trong tren thuyen cua friend da chon (cung logic voi checkboatMulti cua Multi Find Leviathan)
+function GetFriendBoatCannon()
+	local owner = Settings["Select Friend"]
+	if not owner then
+		return nil
+	end
+	for _, boat in ipairs(game:GetService("Workspace").Boats:GetChildren()) do
+		if boat:IsA("Model") then
+			local o, hum = boat:FindFirstChild("Owner"), boat:FindFirstChild("Humanoid")
+			if o and tostring(o.Value) == owner and hum and hum.Value > 0 then
+				for _, c in ipairs(boat:GetChildren()) do
+					local seat = c.Name == "Cannon" and c:FindFirstChild("Seat")
+					if seat and not seat:FindFirstChild("SeatWeld") then
+						return c
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
 function BuyBoatAndTeleBoat(P)
 	local Y = checkboat()
 	if Settings["Auto Sea Event With Friend"] and Settings["Auto Sea Event"] then
-		toTarget(game:GetService("Players")[Settings["Select Friend"]].Character.HumanoidRootPart.CFrame)
+		-- San cung ban: uu tien bay toi Cannon tren thuyen cua friend, khong co cannon trong thi bam theo friend
+		local char = t.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum and hum.Sit then
+			-- da ngoi tren cannon -> dung toTarget (no se nhay khoi ghe), chi huy tween neu con
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			if hrp and hrp:FindFirstChild("FloatForce") then
+				TweenManager.CancelCurrent()
+			end
+			return
+		end
+		local cannon = GetFriendBoatCannon()
+		if cannon then
+			toTarget(cannon.Seat.CFrame)
+		else
+			-- khong co cannon trong (chua co thuyen / cannon co nguoi ngoi) -> bay bam theo friend nhu cu
+			local fp = game:GetService("Players"):FindFirstChild(Settings["Select Friend"] or "")
+			local fhrp = fp and fp.Character and fp.Character:FindFirstChild("HumanoidRootPart")
+			if fhrp then
+				toTarget(fhrp.CFrame)
+			end
+		end
 		return
 	end
 	if not Settings["Auto Sea Event"] and not P then
