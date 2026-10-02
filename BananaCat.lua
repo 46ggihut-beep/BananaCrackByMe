@@ -11667,11 +11667,16 @@ function manageTween(J, F, q, c)
 		false,
 		false,
 		J.CFrame
+	local noclipConn
 	local function F(q)
 		if u then
 			return
 		end
 		u = true
+		if noclipConn then
+			noclipConn:Disconnect()
+			noclipConn = nil
+		end
 		D.PlaybackState = q
 		P = math.max(P - 1, 0)
 		if y[J] == D then
@@ -11714,6 +11719,46 @@ function manageTween(J, F, q, c)
 	P += 1
 	l(true)
 	getgenv().noclip = true
+	-- NOCLIP THUYỀN: set CanCollide=false mỗi frame (Stepped, trước bước physics) cho cả thuyền và nhân vật.
+	-- Trước đây chỉ set 1 lần nên game/Humanoid bật lại collision -> thuyền va model đảo, bị đẩy lùi và tween bị giật ngược.
+	do
+		local nc_parts, nc_next = {}, 0
+		noclipConn = x.Stepped:Connect(function()
+			if u or not J.Parent then
+				return
+			end
+			if tick() >= nc_next then
+				nc_next = tick() + 0.5
+				nc_parts = {}
+				-- model thuyền = model nằm ngay dưới workspace.Boats
+				local boat = J.Parent
+				while boat and boat.Parent and boat.Parent.Name ~= "Boats" and boat.Parent ~= workspace do
+					boat = boat.Parent
+				end
+				if boat then
+					for _, d in ipairs(boat:GetDescendants()) do
+						if d:IsA("BasePart") then
+							nc_parts[#nc_parts + 1] = d
+						end
+					end
+				end
+				local ch = t and t.Character
+				if ch then
+					for _, d in ipairs(ch:GetDescendants()) do
+						if d:IsA("BasePart") then
+							nc_parts[#nc_parts + 1] = d
+						end
+					end
+				end
+			end
+			for i = 1, #nc_parts do
+				local part = nc_parts[i]
+				if part.CanCollide then
+					part.CanCollide = false
+				end
+			end
+		end)
+	end
 	task.spawn(function()
 		while not r and not u and J.Parent do
 			local l = x.Heartbeat:Wait()
@@ -11758,86 +11803,6 @@ function manageTween(J, F, q, c)
 		end
 	end)
 	return D
-end
--- ===== BOAT LIFT: ra khỏi Tiki bằng đường trên trời để né model đảo =====
--- Flow: ngồi vào thuyền -> bay lên (Y gốc + 200) -> bay ra biển ở độ cao đó
---       -> cách Tiki 1000 studs thì hạ xuống Y gốc -> tiếp tục bay tới điểm farm.
--- Chỉ áp dụng cho tween "TweenBoat" ở Sea 3 khi thuyền đang trong 1000 studs quanh Tiki.
--- Tắt bằng getgenv().BoatLiftOverTiki = false
-do
-	local manageTweenRaw = manageTween
-	local TIKI_CENTER = Vector3.new(-16456.4629, 530.251953, 436.231812)
-	local LIFT_HEIGHT, CLEAR_DIST, PHASE_TIMEOUT = 200, 1000, 20
-	local liftState = setmetatable({}, { __mode = "k" })
-
-	local function flat(v)
-		return Vector3.new(v.X, 0, v.Z)
-	end
-
-	local function liftTarget(seat, T)
-		if getgenv().BoatLiftOverTiki == false or game.PlaceId ~= getgenv().CheckPlaceId then
-			return T
-		end
-		local S = seat.Position
-		local tikiDist = flat(S - TIKI_CENTER).Magnitude
-		-- đích nằm trong vùng Tiki (vd quay về Tiki) thì không cần né
-		if flat(T.Position - TIKI_CENTER).Magnitude < CLEAR_DIST then
-			liftState[seat] = nil
-			return T
-		end
-		local st = liftState[seat]
-		if not st then
-			if tikiDist >= CLEAR_DIST then
-				return T
-			end
-			st = { base = S.Y, phase = "lift", t0 = tick() }
-			liftState[seat] = st
-		end
-		if st.phase == "done" then
-			if tikiDist >= CLEAR_DIST then
-				liftState[seat] = nil -- ra khỏi Tiki rồi, lần sau từ Tiki ra sẽ chạy lại
-			end
-			return T
-		end
-		if tick() - st.t0 > PHASE_TIMEOUT then
-			st.phase = "done" -- kẹt quá lâu ở 1 bước: bỏ qua, bay thẳng như cũ
-			return T
-		end
-
-		local liftY = st.base + LIFT_HEIGHT
-		if st.phase == "lift" then
-			if S.Y >= liftY - 8 then
-				st.phase, st.t0 = "out", tick()
-			else
-				return CFrame.new(S.X, liftY, S.Z) * seat.CFrame.Rotation
-			end
-		end
-		if st.phase == "out" then
-			if tikiDist >= CLEAR_DIST then
-				st.phase, st.t0 = "down", tick()
-			else
-				return CFrame.new(T.X, liftY, T.Z) * T.Rotation
-			end
-		end
-		if st.phase == "down" then
-			if S.Y <= st.base + 8 then
-				st.phase = "done"
-				return T
-			end
-			return CFrame.new(S.X, st.base, S.Z) * T.Rotation
-		end
-		return T
-	end
-
-	function manageTween(J, F, q, c)
-		if J and J.Name == "VehicleSeat" and (c == nil or c == "TweenBoat") and typeof(F) == "CFrame" then
-			local ok, nf = pcall(liftTarget, J, F)
-			if ok and nf then
-				F = nf
-			end
-		end
-		return manageTweenRaw(J, F, q, c)
-	end
 end
 local function l(y, P, Y)
 	if not (y and (y:FindFirstChild("VehicleSeat"))) then
