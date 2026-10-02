@@ -4743,26 +4743,20 @@ do
 		return x, y
 	end
 
-	-- gọi mỗi tick khi đang đứng gần tree: click liên tục (giống click lên Sky3) vào vị trí của tree trên màn hình
+	-- gọi mỗi tick khi đang đứng gần tree: mỗi 0.7s mới click 1 lần (không click liên tục) vào vị trí tree trên màn hình
 	getgenv().ClickWorldPos = function(pos)
-		st.pos, st.tick = pos, tick()
-		if st.running then
+		local now = tick()
+		if now - (st.last or 0) < (getgenv().TreeClickInterval or 0.7) then
 			return
 		end
-		st.running = true
-		task.spawn(function()
-			local vim = game:GetService("VirtualInputManager")
-			while tick() - st.tick < 0.6 do
-				local x, y = screenOf(st.pos)
-				if getgenv().DebugTreeClick then
-					print("[TreeClick]", math.floor(x), math.floor(y))
-				end
-				vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
-				vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
-				task.wait()
-			end
-			st.running = false
-		end)
+		st.last = now
+		local x, y = screenOf(pos)
+		if getgenv().DebugTreeClick then
+			print("[TreeClick]", math.floor(x), math.floor(y))
+		end
+		local vim = game:GetService("VirtualInputManager")
+		vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+		vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
 	end
 end
 
@@ -5551,6 +5545,10 @@ getgenv().ClickM1Volcano = function(E, l)
 end
 local m = L:WaitForChild("Modules")
 getgenv().SpamGunDragonStorm = function(E)
+	-- farm ship với Use Dragonstorm For Sea Event: giả lập click vào model thuyền, 0.4s click 1 lần
+	if E and E.Name == "Engine" and Settings["Use Dragonstorm For Sea Event"] and getgenv().ClickModelDS then
+		getgenv().ClickModelDS(E.Parent, 0.4)
+	end
 	local l, Q = require(m.CombatUtil), t.Character
 	local d = Q and (Q:FindFirstChild("Dragonstorm"))
 	if not d or (l:IsGunReloading(d)) then
@@ -5579,6 +5577,138 @@ getgenv().SpamGunDragonStorm = function(E)
 	debug.setupvalue(l, 18, P)
 	L.Remotes.Validator2:FireServer(math.floor(d / V * 16777215), P)
 	m.Net:FindFirstChild("RE/ShootGunEvent"):FireServer(E.Position, { E })
+end
+-- ===== SHOOTGUN AURA (logic bắn gun lấy từ script fast attack, chỉ giữ phần bắn gun) =====
+-- Target: mob, ship (Engine), sea beast, leviathan (Leviathan / Tail / Segment). Không bắn người chơi.
+do
+	local RS = game:GetService("ReplicatedStorage")
+	local VIM = game:GetService("VirtualInputManager")
+	local GuiService = game:GetService("GuiService")
+	local lp = game:GetService("Players").LocalPlayer
+
+	getgenv().ShootGunRange = getgenv().ShootGunRange or 500
+	getgenv().ShootGunDelay = getgenv().ShootGunDelay or 0.02
+
+	local function findNetRemote(name)
+		local net = RS:FindFirstChild("Modules") and RS.Modules:FindFirstChild("Net")
+		if not net then
+			return
+		end
+		local r = net:FindFirstChild(name)
+		if r then
+			return r
+		end
+		for _, v in ipairs(net:GetDescendants()) do
+			if v:IsA("RemoteEvent") and v.Name == name then
+				return v
+			end
+		end
+	end
+
+	-- trả về part để bắn nếu model còn sống, không thì nil
+	local function shootPart(m)
+		if not m:IsA("Model") then
+			return
+		end
+		local hum = m:FindFirstChildOfClass("Humanoid")
+		if hum then -- mob thường, Terrorshark
+			if hum.Health <= 0 then
+				return
+			end
+			return m:FindFirstChild("HumanoidRootPart") or m:FindFirstChild("Head")
+		end
+		local hv = m:FindFirstChild("Health")
+		if hv and hv:IsA("ValueBase") and hv.Value <= 0 then
+			return
+		end
+		local n = m.Name
+		if n:find("Leviathan", 1, true) then -- Leviathan / Leviathan Tail / Leviathan Segment
+			if n == "Leviathan" and m:GetAttribute("Armored") then
+				return
+			end
+			if n == "Leviathan Tail" and not m:GetAttribute("HealthEnabled") then
+				return
+			end
+			return m:FindFirstChild("Hitbox11") or m:FindFirstChild("HumanoidRootPart") or m.PrimaryPart
+		end
+		if m:FindFirstChild("Engine") and hv then -- ship
+			return m.Engine
+		end
+		if m:FindFirstChild("HealthBBG") then -- sea beast
+			return m:FindFirstChild("HumanoidRootPart")
+		end
+	end
+
+	-- target gần nhất trong phạm vi shootgun (mặc định 500 studs)
+	getgenv().GetShootGunTarget = function(range)
+		local char = lp.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		if not root then
+			return
+		end
+		local best, bd = nil, range or getgenv().ShootGunRange
+		for _, folder in ipairs({ workspace:FindFirstChild("Enemies"), workspace:FindFirstChild("SeaBeasts") }) do
+			if folder then
+				for _, m in ipairs(folder:GetChildren()) do
+					local part = shootPart(m)
+					if part then
+						local d = (root.Position - part.Position).Magnitude
+						if d < bd then
+							best, bd = part, d
+						end
+					end
+				end
+			end
+		end
+		return best
+	end
+
+	-- bắn 1 phát: chỉ khi đang cầm Dragonstorm
+	getgenv().ShootGunDS = function(part)
+		if not part then
+			return
+		end
+		local char = lp.Character
+		if not (char and char:FindFirstChild("Dragonstorm")) then
+			return
+		end
+		local ev = findNetRemote("RE/ShootGunEvent")
+		if ev then
+			pcall(function()
+				ev:FireServer(part.Position, { part })
+			end)
+		end
+		pcall(function()
+			VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+			VIM:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+		end)
+	end
+
+	-- giả lập click lên model (thuyền đang farm), mỗi `interval` giây click 1 lần
+	local lastModelClick = 0
+	getgenv().ClickModelDS = function(model, interval)
+		if not model or tick() - lastModelClick < (interval or 0.4) then
+			return
+		end
+		local part = model:FindFirstChild("Engine") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+		if not part then
+			return
+		end
+		lastModelClick = tick()
+		local cam = workspace.CurrentCamera
+		local v = cam:WorldToViewportPoint(part.Position)
+		local vp = cam.ViewportSize
+		if v.Z <= 0 or v.X < 0 or v.Y < 0 or v.X > vp.X or v.Y > vp.Y then
+			cam.CFrame = CFrame.lookAt(cam.CFrame.Position, part.Position)
+			v = cam:WorldToViewportPoint(part.Position)
+		end
+		local x, y = math.clamp(v.X, 1, vp.X - 1), math.clamp(v.Y, 1, vp.Y - 1)
+		if getgenv().ClickUseInset then
+			y = y + GuiService:GetGuiInset().Y
+		end
+		VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+		VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+	end
 end
 function ShootM1(E)
 	spawn(function()
@@ -5944,19 +6074,21 @@ SettingFarmMainSection.CreateToggle(
 SettingFarmMainSection.CreateToggle(
 	{ Title = "Kill Aura With DragonStorm", Desc = nil, Default = Settings["Kill Aura With DragonStorm"] or false },
 	function(I)
-		if I then
+		if I and not getgenv().__DSAuraRunning then
+			getgenv().__DSAuraRunning = true
 			spawn(function()
-				while Settings["Kill Aura With DragonStorm"] and (wait()) do
+				while Settings["Kill Aura With DragonStorm"] and task.wait(getgenv().ShootGunDelay or 0.02) do
 					pcall(function()
-						if t.Character:FindFirstChild("Dragonstorm") and getgenv().SpamGunDragonStorm then
-							local _ = m(game.Players.LocalPlayer, 150)
-							if _ then
-								local m, o = _[1], _[2]
-								SpamGunDragonStorm(m.PrimaryPart)
+						-- chỉ chạy khi đang cầm Dragonstorm và có target trong phạm vi shootgun
+						if t.Character and t.Character:FindFirstChild("Dragonstorm") then
+							local part = getgenv().GetShootGunTarget()
+							if part then
+								getgenv().ShootGunDS(part)
 							end
 						end
 					end)
 				end
+				getgenv().__DSAuraRunning = false
 			end)
 		end
 		SaveSettings("Kill Aura With DragonStorm", I)
