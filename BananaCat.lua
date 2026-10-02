@@ -9994,6 +9994,37 @@ RaidLawSection.CreateToggle(
 	end
 )
 FarmObservationSection = FarmotherMain.CreateSection("Farm Observation")
+-- Rejoin lai chinh server hien tai (copy JobId hien tai -> join lai JobId do) thay vi hop sang server moi
+local __rejoining = false
+function RejoinCurrentServer()
+	if __rejoining then
+		return
+	end
+	__rejoining = true
+	local jobId = tostring(game.JobId)
+	pcall(function()
+		if setclipboard then
+			setclipboard(jobId)
+		end
+	end)
+	pcall(function()
+		require(game:GetService("ReplicatedStorage").Notification)
+			.new("<Color=Red>Banana Cat Hub : Rejoin Server<Color=/>")
+			:Display()
+	end)
+	local ok = pcall(function()
+		game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport", jobId)
+	end)
+	if not ok then
+		pcall(function()
+			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, jobId, game.Players.LocalPlayer)
+		end)
+	end
+	-- doi teleport chay; neu 10s van chua roi server (teleport fail) thi cho phep thu lai
+	task.delay(10, function()
+		__rejoining = false
+	end)
+end
 function FarmObservation()
 	local y = game.PlaceId == getgenv().CheckPlaceId2 and "Marine Captain" or "Marine Commodore"
 	local P = DetectMob(y)
@@ -10006,7 +10037,7 @@ function FarmObservation()
 		toTarget(Y.CFrame * H)
 		task.wait(3)
 		if not game:GetService("Lighting").Blur.Enabled and Settings["Farm Observation [ Hop Server ]"] then
-			HopServer()
+			RejoinCurrentServer()
 		end
 	else
 		local Y, H =
