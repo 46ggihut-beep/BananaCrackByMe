@@ -1722,7 +1722,7 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 	end
 	local function N(q, c)
 		local r = 0
-		for n = 0, l.RETRY_MAX, 1 do
+		for n = 0, l.RETRY_MAX, 1 do repeat 
 			local u, W = pcall(function()
 				return m({
 					Url = q,
@@ -1735,11 +1735,11 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 			end
 			u = W.StatusCode or W.Status or 0
 			if u == 429 then
-				r += 1
+				r = r + (1)
 				if n >= l.RETRY_MAX then
 					return nil, "RATE_LIMIT"
 				end
-				local m = if r >= 2 then l.RATE_COOLDOWN + _() else math.pow(l.RETRY_BASE, n + 1) + _()
+				local m = (function() if r >= 2 then return l.RATE_COOLDOWN + _() else return math.pow(l.RETRY_BASE, n + 1) + _() end end)()
 				local _ = string.format(
 					"\226\143\179 429 RATE LIMITED \226\128\148 WAITING %.0fs THEN RETRYING (%d/%d)",
 					m,
@@ -1767,7 +1767,7 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 				task.spawn(function()
 					while _ > 0 do
 						task.wait(1)
-						_ -= 1
+						_ = _ - (1)
 						local q = string.format(
 							"\226\143\179 429 RATE LIMITED \226\128\148 %.0fs REMAINING (%d/%d)",
 							_,
@@ -1787,7 +1787,7 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 				if c then
 					F()
 				end
-				continue
+				break
 			end
 			if u == 403 then
 				return nil, "FORBIDDEN"
@@ -1809,7 +1809,7 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 				return nil, "INVALID_JSON"
 			end
 			return _, nil
-		end
+		until true end
 		return nil, "RATE_LIMIT"
 	end
 	local function m()
@@ -2029,7 +2029,7 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 			if E.finished then
 				break
 			end
-			_ += 1
+			_ = _ + (1)
 			E.pages = E.pages + 1
 			I = #E.servers > 0
 			if I then
@@ -2040,7 +2040,7 @@ SectionServer.CreateButton({ Title = "Open Gui Server Browser (Low Player and Pi
 			end
 			V("PAGE " .. E.pages .. " \226\128\148 " .. #E.servers .. " FOUND", Q.AMBER)
 			local e = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(R)
-			local R, Y = N(if E.cursor then e .. "&cursor=" .. G:UrlEncode(E.cursor) else e, I)
+			local R, Y = N((function() if E.cursor then return e .. "&cursor=" .. G:UrlEncode(E.cursor) else return e end end)(), I)
 			if not R then
 				e = o(Y)
 				if not I then
@@ -2148,7 +2148,7 @@ if not (bit32 or bit) then
 		local R, m = 0, 1
 		while f > 0 or K > 0 do
 			local E, l = f % 2, K % 2
-			f, K, R, m = (f - E) / 2, (K - l) / 2, if E ~= l then R + m else R, m * 2
+			f, K, R, m = (f - E) / 2, (K - l) / 2, (function() if E ~= l then return R + m else return R end end)(), m * 2
 		end
 		return R
 	end
@@ -2171,11 +2171,7 @@ function teleportSmart(K)
 	local R, m, E = Realm.safeGetCurrentSeaAsync(), {}, { done = false }
 	for l, l in
 		ipairs(
-			if R == "Sea1"
-				then { 2753915549, 85211729168715 }
-				else if R == "Sea2"
-					then { 4442272183, 79091703265657 }
-					else if R == "Sea3" then { 7449423635, 100117331123089 } else m
+			((R == "Sea1") and { 2753915549, 85211729168715 } or ((R == "Sea2") and { 4442272183, 79091703265657 } or ((R == "Sea3") and { 7449423635, 100117331123089 } or m)))
 		)
 	do
 		task.spawn(function()
@@ -2191,13 +2187,13 @@ SectionServer.CreateButton({ Title = "Join JobId" }, function()
 			local K, R, R = G, f()
 			local m = string.find
 			game:GetService("ReplicatedStorage").__ServerBrowser
-				:InvokeServer("teleport", if m(G, "BananaCat-") then (R(G)) else K)
+				:InvokeServer("teleport", (function() if m(G, "BananaCat-") then return (R(G)) else return K end end)())
 		end
 	else
 		local K, R, R = G, f()
 		local m = string.find
 		game:GetService("ReplicatedStorage").__ServerBrowser
-			:InvokeServer("teleport", if m(G, "BananaCat-") then (R(G)) else K)
+			:InvokeServer("teleport", (function() if m(G, "BananaCat-") then return (R(G)) else return K end end)())
 	end
 end)
 SectionServer.CreateButton({ Title = "Copy JobId" }, function()
@@ -2262,18 +2258,16 @@ function HopLessAll()
 	end
 	function HopServerLess()
 		local l, Q =
-			if m == ""
-				then (game.HttpService:JSONDecode(
+			(function() if m == "" then return (game.HttpService:JSONDecode(
 					game:HttpGet("https://games.roblox.com/v1/games/" .. K .. "/servers/Public?sortOrder=Asc&limit=100")
-				))
-				else (game.HttpService:JSONDecode(
+				)) else return (game.HttpService:JSONDecode(
 					game:HttpGet(
 						"https://games.roblox.com/v1/games/"
 							.. K
 							.. "/servers/Public?sortOrder=Asc&limit=100&cursor="
 							.. m
 					)
-				)),
+				)) end end)(),
 			""
 		local K = l.nextPageCursor and l.nextPageCursor ~= "null" and l.nextPageCursor ~= nil
 		if K then
@@ -2286,7 +2280,7 @@ function HopLessAll()
 			if tonumber(S.maxPlayers) > tonumber(S.playing) and tonumber(S.playing) <= 3 then
 				for l, l in pairs(R) do
 					if K ~= 0 then
-						m = if Q == tostring(l) then false else m
+						m = (function() if Q == tostring(l) then return false else return m end end)()
 					elseif tonumber(E) ~= tonumber(l) then
 						pcall(function()
 							delfile("Banana Cat Hub/NotSameServers.json")
@@ -2294,7 +2288,7 @@ function HopLessAll()
 							table.insert(R, E)
 						end)
 					end
-					K += 1
+					K = K + (1)
 				end
 				if m == true then
 					table.insert(R, Q)
@@ -2332,7 +2326,7 @@ function CheckMoon()
 		"http://www.roblox.com/asset/?id=9709149052",
 		MoonTextureId(),
 		"Bad Moon"
-	return if m == K or m == R then if m == K then "Full Moon" else if m == R then "Next Night" else E else E
+	return (function() if m == K or m == R then return ((m == K) and "Full Moon" or ((m == R) and "Next Night" or E)) else return E end end)()
 end
 function function6()
 	return math.floor(game.Lighting.ClockTime)
@@ -2446,7 +2440,7 @@ function CheckGoTrain()
 end
 function CheckClockTime()
 	local K = game.Lighting.ClockTime
-	return if K >= 18 or K < 5 then "Night" else "Day"
+	return ((K >= 18 or K < 5) and "Night" or "Day")
 end
 function StatusCheckLeviathan()
 	if game.PlaceId == getgenv().CheckPlaceId then
@@ -2556,7 +2550,7 @@ spawn(function()
 					for m, Q in ipairs(l) do
 						m = Q.Transparency == 1 and K < 4
 						if m then
-							K += 1
+							K = K + (1)
 						end
 					end
 				end
@@ -2622,9 +2616,9 @@ SectionLocalPlayerMain.CreateButton({ Title = "Load config in Web" }, function()
 	game:GetService("RunService")
 	local R, m, E = "https://cfg.banana-hub.xyz", getgenv().Key, game.Players.LocalPlayer.Name
 	function ApplyConfigFromWeb(l)
-		for Q, S in pairs(l) do
+		for Q, S in pairs(l) do repeat 
 			if not S.name then
-				continue
+				break
 			end
 			Q = Options[S.name]
 			if Q and S then
@@ -2656,7 +2650,7 @@ SectionLocalPlayerMain.CreateButton({ Title = "Load config in Web" }, function()
 					end
 				end
 			end
-		end
+		until true end
 	end
 	local l, Q = pcall(function()
 		return request({
@@ -2745,7 +2739,7 @@ SectionLocalPlayerMain.CreateButton(
 					end
 					m[d] = { name = l, type = "slider_dropdown", sliders = I, values = _, page = S, section = L }
 				end
-				E += 1
+				E = E + (1)
 			end
 			return m
 		end
@@ -2847,7 +2841,7 @@ SectionLocalPlayerMain.CreateButton({ Title = "Show Item" }, function()
 					end
 				end
 			end
-			d += 20
+			d = d + (20)
 		end
 		Q = { "Left", "Right" }
 		for I, I in ipairs(Q) do
@@ -2971,7 +2965,7 @@ SectionLocalPlayerMain.CreateButton({ Title = "Show Item" }, function()
 							L.Name = "Ditme"
 							L.Text = E.Level.Value
 							L.Parent = o
-							V += 1
+							V = V + (1)
 						end
 					end
 				end
@@ -3121,7 +3115,11 @@ spawn(function()
 	repeat
 		wait(1)
 		if tick() - R > 179 then
-			game:Shutdown()
+			-- KHÔNG game:Shutdown() nữa (làm văng Roblox khi load chậm sau hop/rejoin/đổi sea)
+			pcall(function()
+				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+			end)
+			R = tick()
 			wait(10)
 		end
 	until game:FindFirstChild("CoreGui") and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
@@ -3129,7 +3127,7 @@ spawn(function()
 	repeat
 		wait(1)
 		if tick() - R > 169 then
-			game:Shutdown()
+			R = tick()
 			wait(10)
 		end
 	until game.Players.LocalPlayer:FindFirstChild("Backpack") and (game.Players.LocalPlayer:GetMouse())
@@ -4071,14 +4069,14 @@ local function B(Z, C, J, F)
 			if M < z - 5 then
 				z, U = M, (tick())
 			else
-				h = if tick() - U > 2.5 then false else h
+				h = (function() if tick() - U > 2.5 then return false else return h end end)()
 			end
 			if h and p and w and M > w + Y then
 				v0.cap = math.max(v0.cap * 0.7, e)
 				v0.nextRaise = tick() + 3
 				u = T0
 			else
-				u = if h and p and (T0 - p).Magnitude > Y then T0 else u
+				u = (function() if h and p and (T0 - p).Magnitude > Y then return T0 else return u end end)()
 			end
 			j = W - u
 			local e, Y = j.Magnitude, math.min(math.min(J, v0.cap) * q, P)
@@ -4086,7 +4084,7 @@ local function B(Z, C, J, F)
 				v0.cap = math.min(v0.cap * 1.08, J)
 				v0.nextRaise = tick() + 1.5
 			end
-			u = if e <= Y or e <= 0.05 then W else u + j / e * Y
+			u = (function() if e <= Y or e <= 0.05 then return W else return u + j / e * Y end end)()
 			O = (W - u).Magnitude
 			I()
 			getgenv().noclip = true
@@ -5212,9 +5210,7 @@ function toTarget(P, e)
 		H.CFrame = H.CFrame * CFrame.new(0, 20, 0)
 	end
 	Z = CFrame.new()
-	Z = if ReadyToDodge
-		then (CFrame.new(0, 200, 0))
-		else if G then (CFrame.new(0, Settings["Distance Teleport Y"] or 800, 0)) else Z
+	Z = (function() if ReadyToDodge then return (CFrame.new(0, 200, 0)) else return (function() if G then return (CFrame.new(0, Settings["Distance Teleport Y"] or 800, 0)) else return Z end end)() end end)()
 	Y, e = Settings["Speed Tween "] or 300, P * Z
 	if (e.Position - H.Position).Magnitude < 3 and not ReadyToDodge and not G then
 		TweenManager.CancelTweenOnly()
@@ -5418,7 +5414,7 @@ function attackMelee(m)
 			v_u_33 = true
 			v_u_32 = 5
 			v_u_21 = os.clock()
-			v_u_27 += 1
+			v_u_27 = v_u_27 + (1)
 			if v_u_27 > #V.Basic then
 				v_u_27 = 1
 			end
@@ -5500,7 +5496,7 @@ local function m(E, l, Q)
 		return true
 	end
 	if d then
-		v_u_51 += 1
+		v_u_51 = v_u_51 + (1)
 		if v_u_51 > 5 then
 			v_u_51 = 1
 		end
@@ -5599,7 +5595,7 @@ getgenv().SpamGunDragonStorm = function(E)
 	d = ((N * _ + y * I) % o * o + Q) % V
 	N = math.floor(d / o)
 	y = d - N * o
-	P += 1
+	P = P + (1)
 	debug.setupvalue(l, 15, I)
 	debug.setupvalue(l, 13, _)
 	debug.setupvalue(l, 16, o)
@@ -5764,7 +5760,7 @@ function ShootM1(E)
 				local P = ((o * d + V * Q) % I * I + y) % _
 				o = math.floor(P / I)
 				V = P - o * I
-				N += 1
+				N = N + (1)
 				debug.setupvalue(l, 15, Q)
 				debug.setupvalue(l, 13, d)
 				debug.setupvalue(l, 16, I)
@@ -5882,18 +5878,14 @@ getgenv().TableMobSpawn = {}
 spawn(function()
 	for Q, Q in pairs(getnilinstances()) do
 		if
-			if Q:GetAttribute("DisplayName") and (string.find(Q:GetAttribute("DisplayName"), "Lv."))
-				then (Q:GetAttribute("DisplayName"):gsub(" %pLv. %d+%p", ""))
-				else nil
+			(function() if Q:GetAttribute("DisplayName") and (string.find(Q:GetAttribute("DisplayName"), "Lv.")) then return (Q:GetAttribute("DisplayName"):gsub(" %pLv. %d+%p", "")) else return nil end end)()
 		then
 			table.insert(TableMobSpawn, Q)
 		end
 	end
 	for Q, Q in pairs(game:GetService("Workspace")._WorldOrigin.EnemySpawns:GetChildren()) do
 		if
-			if Q:GetAttribute("DisplayName") and (string.find(Q:GetAttribute("DisplayName"), "Lv."))
-				then (Q:GetAttribute("DisplayName"):gsub(" %pLv. %d+%p", ""))
-				else nil
+			(function() if Q:GetAttribute("DisplayName") and (string.find(Q:GetAttribute("DisplayName"), "Lv.")) then return (Q:GetAttribute("DisplayName"):gsub(" %pLv. %d+%p", "")) else return nil end end)()
 		then
 			table.insert(TableMobSpawn, Q)
 		end
@@ -5906,7 +5898,7 @@ function getcenter(Q)
 	local d
 	local I = 0
 	for _, o in pairs(TableMobSpawn) do
-		_ = if string.find(o.Name, "Lv.") then (o.Name:gsub(" %pLv. %d+%p", "")) else nil
+		_ = (function() if string.find(o.Name, "Lv.") then return (o.Name:gsub(" %pLv. %d+%p", "")) else return nil end end)()
 		if o:IsA("Part") and (_ and _ == Q or Q == o.Name or name1 and o.Name == name1) then
 			if d == nil then
 				d, I = o.Position, I + 1
@@ -5915,13 +5907,13 @@ function getcenter(Q)
 			end
 		end
 	end
-	d /= I
+	d = d / (I)
 	return CFrame.new(d)
 end
 function DetectPartMobBring(Q, d, I, _)
-	local o, V = {}, if string.find(Q, "Lv.") then (Q:gsub(" %pLv. %d+%p", "")) else nil
+	local o, V = {}, (function() if string.find(Q, "Lv.") then return (Q:gsub(" %pLv. %d+%p", "")) else return nil end end)()
 	for N, y in pairs(TableMobSpawn) do
-		N = if string.find(y.Name, "Lv.") then (y.Name:gsub(" %pLv. %d+%p", "")) else nil
+		N = (function() if string.find(y.Name, "Lv.") then return (y.Name:gsub(" %pLv. %d+%p", "")) else return nil end end)()
 		if y:IsA("Part") and (N and N == Q or Q == y.Name or V and y.Name == V) then
 			table.insert(o, y)
 		end
@@ -5990,7 +5982,7 @@ function BringMob(Q)
 		table.insert(d, Q)
 	end
 	local I = Settings["Bring Mob Count"] or 2
-	local _, o = if I > 2 then 350 else 200
+	local _, o = ((I > 2) and 350 or 200)
 	if
 		game:GetService("Players").LocalPlayer.Data.Race.Value == "Cyborg"
 		and (t.Character:FindFirstChild("RaceTransformed"))
@@ -6232,13 +6224,13 @@ game:GetService("Workspace").Enemies.DescendantAdded:Connect(function(descendant
 		ReadyToDodge = true
 		local now = tick()
 
-		while true do
+		while true do local __brk = false repeat 
 			wait()
 			if not (not descendant or not descendant.Parent or tick() - now > 14) then
-				continue
+				break
 			end
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		if tick() - now < 2 then
 			wait(0.5)
@@ -6952,15 +6944,7 @@ function AutoAllSkill(V)
 		equiptool(C.Name)
 		return
 	end
-	J = if V and (CheckCDSkillTransformation(V, Settings["Select Skills " .. V.ToolTip]))
-		then (CheckCDSkillTransformation(V, Settings["Select Skills " .. V.ToolTip]))
-		else if H and (CheckCDSkillTransformation(H, Settings["Select Skills " .. H.ToolTip]))
-			then (CheckCDSkillTransformation(H, Settings["Select Skills " .. H.ToolTip]))
-			else if C and (CheckCDSkillTransformation(C, Settings["Select Skills " .. C.ToolTip]))
-				then (CheckCDSkillTransformation(C, Settings["Select Skills " .. C.ToolTip]))
-				else if B and (CheckCDSkillTransformation(B, Settings["Select Skills " .. B.ToolTip]))
-					then (CheckCDSkillTransformation(B, Settings["Select Skills " .. B.ToolTip]))
-					else nil
+	J = (function() if V and (CheckCDSkillTransformation(V, Settings["Select Skills " .. V.ToolTip])) then return (CheckCDSkillTransformation(V, Settings["Select Skills " .. V.ToolTip])) else return (function() if H and (CheckCDSkillTransformation(H, Settings["Select Skills " .. H.ToolTip])) then return (CheckCDSkillTransformation(H, Settings["Select Skills " .. H.ToolTip])) else return (function() if C and (CheckCDSkillTransformation(C, Settings["Select Skills " .. C.ToolTip])) then return (CheckCDSkillTransformation(C, Settings["Select Skills " .. C.ToolTip])) else return (function() if B and (CheckCDSkillTransformation(B, Settings["Select Skills " .. B.ToolTip])) then return (CheckCDSkillTransformation(B, Settings["Select Skills " .. B.ToolTip])) else return nil end end)() end end)() end end)() end end)()
 	if J then
 		B = J.Parent.Name
 		equiptool(B)
@@ -6988,9 +6972,7 @@ local function B()
 			if q and c and c.Display then
 				local H, q = c.Display.Category, c.Index and c.Index.StorageKey
 				local D, r =
-					if H == "Blox Fruit"
-						then q or c.Display.Name or "ItemId_" .. F.ItemId
-						else c.Display.Name or q or "ItemId_" .. F.ItemId,
+					(function() if H == "Blox Fruit" then return q or c.Display.Name or "ItemId_" .. F.ItemId else return c.Display.Name or q or "ItemId_" .. F.ItemId end end)(),
 					V:ReadItem(J.MASTERY, F.ItemId, F.NetworkedUID) or 0
 				table.insert(
 					C,
@@ -7035,7 +7017,7 @@ end
 			return (H:gsub(".", function(C)
 				local J, F = C:byte(), ""
 				for C = 8, 1, -1 do
-					F ..= J % 2 ^ C - J % 2 ^ (C - 1) > 0 and "1" or "0"
+					F = F .. (J % 2 ^ C - J % 2 ^ (C - 1) > 0 and "1" or "0")
 				end
 				return F
 			end) .. "0000"):gsub("%d%d%d?%d?%d?%d?", function(C)
@@ -7044,7 +7026,7 @@ end
 				end
 				local J = 0
 				for F = 1, 6, 1 do
-					J += C:sub(F, F) == "1" and 2 ^ (6 - F) or 0
+					J = J + (C:sub(F, F) == "1" and 2 ^ (6 - F) or 0)
 				end
 				return V:sub(J + 1, J + 1)
 			end) .. ({ "", "==", "=" })[#H % 3 + 1]
@@ -7058,7 +7040,7 @@ end
 					end
 					local C, J = V:find(H) - 1, ""
 					for V = 6, 1, -1 do
-						J ..= C % 2 ^ V - C % 2 ^ (V - 1) > 0 and "1" or "0"
+						J = J .. (C % 2 ^ V - C % 2 ^ (V - 1) > 0 and "1" or "0")
 					end
 					return J
 				end)
@@ -7068,7 +7050,7 @@ end
 					end
 					local H = 0
 					for C = 1, 8, 1 do
-						H += V:sub(C, C) == "1" and 2 ^ (8 - C) or 0
+						H = H + (V:sub(C, C) == "1" and 2 ^ (8 - C) or 0)
 					end
 					return string.char(H)
 				end)
@@ -7111,7 +7093,7 @@ function SpecialHop(C)
 		for V, V in next, Servers.data, nil do
 			if V and V.name == C then
 				local H, C, J, q, q = V.jobid, V.Players, V.placeid, f()
-				H = if string.find(H, "BananaCat") then (q(H)) else H
+				H = (function() if string.find(H, "BananaCat") then return (q(H)) else return H end end)()
 				if
 					H
 					and H ~= game.JobId
@@ -7140,7 +7122,7 @@ function FarmMethod()
 	elseif f == "Farm Tyrant of the Skies" then
 		C, V, H = 2575, Y, "TikiQuest3"
 	else
-		V = if f == "Aura Farm" and (DetectMobAura()) then { DetectMobAura() } else V
+		V = ((f == "Aura Farm" and (DetectMobAura())) and { DetectMobAura() } or V)
 	end
 	if Settings["Farm Material"] then
 		V = NameMaterials[Settings["Select Material"]]
@@ -7607,7 +7589,7 @@ function GetPathFruit()
 	end
 end
 function GetPirateRaid(f)
-	for V, V in ipairs((if f then game.ReplicatedStorage else game.workspace.Enemies):GetChildren()) do
+	for V, V in ipairs(((function() if f then return game.ReplicatedStorage else return game.workspace.Enemies end end)()):GetChildren()) do
 		if
 			V:IsA("Model")
 			and V.Name ~= "Oni2"
@@ -7639,7 +7621,7 @@ function IsMisisngLegHaki(V)
 			if V then
 				table.insert(V, H.HiddenName)
 			else
-				Y = if not Y then H.HiddenName else Y .. ", " .. H.HiddenName
+				Y = (function() if not Y then return H.HiddenName else return Y .. ", " .. H.HiddenName end end)()
 			end
 		end
 	end
@@ -7702,10 +7684,10 @@ end
 function CheckFruitplr()
 	local f
 	for V, V in pairs(t.Backpack:GetChildren()) do
-		f = if string.find(V.Name, "Fruit") then V.Name else f
+		f = (function() if string.find(V.Name, "Fruit") then return V.Name else return f end end)()
 	end
 	for V, V in pairs(t.Character:GetChildren()) do
-		f = if string.find(V.Name, "Fruit") then V.Name else f
+		f = (function() if string.find(V.Name, "Fruit") then return V.Name else return f end end)()
 	end
 	return f
 end
@@ -7766,31 +7748,15 @@ function StopThirdSea()
 	end
 end
 function checkplatebarito()
-	return if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate1.BrickColor
-			== BrickColor.new("Sand yellow")
-		then "Plate1"
-		else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate2.BrickColor
-				== BrickColor.new("Sand yellow")
-			then "Plate2"
-			else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate3.BrickColor
-					== BrickColor.new("Sand yellow")
-				then "Plate3"
-				else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate4.BrickColor
-						== BrickColor.new("Sand yellow")
-					then "Plate4"
-					else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate5.BrickColor
-							== BrickColor.new("Sand yellow")
-						then "Plate5"
-						else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate6.BrickColor
-								== BrickColor.new("Sand yellow")
-							then "Plate6"
-							else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate7.BrickColor
-									== BrickColor.new("Sand yellow")
-								then "Plate7"
-								else if game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate8.BrickColor
-										== BrickColor.new("Sand yellow")
-									then "Plate8"
-									else nil
+	return ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate1.BrickColor
+			== BrickColor.new("Sand yellow")) and "Plate1" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate2.BrickColor
+				== BrickColor.new("Sand yellow")) and "Plate2" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate3.BrickColor
+					== BrickColor.new("Sand yellow")) and "Plate3" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate4.BrickColor
+						== BrickColor.new("Sand yellow")) and "Plate4" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate5.BrickColor
+							== BrickColor.new("Sand yellow")) and "Plate5" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate6.BrickColor
+								== BrickColor.new("Sand yellow")) and "Plate6" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate7.BrickColor
+									== BrickColor.new("Sand yellow")) and "Plate7" or ((game:GetService("Workspace").Map.Dressrosa.BartiloPlates.Plate8.BrickColor
+										== BrickColor.new("Sand yellow")) and "Plate8" or nil))))))))
 end
 function AutoQuestBarito()
 	if game.ReplicatedStorage.Remotes.CommF_:InvokeServer("BartiloQuestProgress", "Bartilo") == 0 then
@@ -8558,7 +8524,7 @@ task.spawn(function()
 					local y, P = os.clock(), false
 					repeat
 						task.wait()
-						P = if GetPirateRaid() or (GetPirateRaid(true)) then true else P
+						P = (function() if GetPirateRaid() or (GetPirateRaid(true)) then return true else return P end end)()
 					until os.clock() - y >= 10 or P
 					if not P then
 						getgenv().DetectRaidCastle = false
@@ -8742,7 +8708,7 @@ do
 
 	FormatMagnetTime = FormatMagnetTime or function(n)
 		n = math.floor(tonumber(n) or 0)
-		return string.format("%02d:%02d", n // 60, n % 60)
+		return string.format("%02d:%02d", math.floor(n / 60), n % 60)
 	end
 
 	SeaOnly = SeaOnly or function(label, title, seas)
@@ -8813,7 +8779,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 		for k, v6 in pairs(arg2) do
 			if type(v6) == "table" and v6.Completed then
-				done += 1
+				done = done + (1)
 				local flag = type(arg) == "table" and arg[k]
 
 				if type(flag) == "table" and not flag.Completed then
@@ -9000,15 +8966,15 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		character:MoveTo(arg3)
 		local now = tick()
 
-		while true do
+		while true do local __brk = false repeat 
 			task.wait(0.1)
 			tbl3.LastCall = tick()
 			TweenHoldUntil = tick() + 1
 			if not ((humanoidRootPart.Position - arg3).Magnitude < 6 or tick() - now > 6 or not humanoidRootPart.Parent) then
-				continue
+				break
 			end
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		if floatForce and floatForce.Parent then
 			floatForce.MaxForce = maxForce
@@ -9162,7 +9128,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		local now2 = tick()
 		local str2
 
-		while true do
+		while true do local __brk = false repeat 
 			local v7 = FindHiddenEnemy(v6.mobs, v6.center, 1500)
 
 			if not v7 then
@@ -9190,23 +9156,23 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 					flag = tick() - now > 45 or not Settings["Auto Secret Quest"]
 
 					if flag then
-						break
+						__brk = true break
 					else
-						continue
+						break
 					end
 				end
 			else
 				flag = tick() - now > 45 or not Settings["Auto Secret Quest"]
 
 				if flag then
-					break
+					__brk = true break
 				else
-					continue
+					break
 				end
 			end
 
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		return str2
 	end
@@ -9272,7 +9238,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		local now = tick()
 		local n = 1
 
-		while true do
+		while true do local __brk = false repeat 
 			task.wait(0.4)
 			local ok2, result2 = pcall(DialogueController.getActiveDialogue)
 			local pageStack = ok2 and result2 and result2._pageStack and result2._pageStack[#result2._pageStack]
@@ -9298,7 +9264,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 					end
 
 					pcall(DialogueController.select, v6 or options2[1])
-					n += 1
+					n = n + (1)
 				end
 			end
 
@@ -9309,10 +9275,10 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 			end
 
 			if not flag then
-				continue
+				break
 			end
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		task.wait(0.5)
 		pcall(DialogueController.close)
@@ -9446,7 +9412,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 		for _, v9 in v6, v7, v8 do
 			if tbl9[tostring(v9.Name)] then
-				n += tonumber(v9.Count) or 1
+				n = n + (tonumber(v9.Count) or 1)
 			end
 		end
 
@@ -9557,7 +9523,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		HiddenEvent.dialogueBusy = tick() + (arg2 or 12) + 2
 		local flag = false
 
-		while true do
+		while true do local __brk = false repeat 
 			task.wait(0.3)
 			HiddenEvent.stallGrace = tick() + 20
 
@@ -9572,10 +9538,10 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 			end
 
 			if not flag2 then
-				continue
+				break
 			end
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		if flag and DialogueController.Active then
 			task.wait(1)
@@ -9746,7 +9712,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		HiddenDodge.untilTime = 0
 	end
 
-	GetHiddenFarmCFrame = function(c)local n,L=c.HumanoidRootPart,Settings["Select Weapon"]=="Blox Fruit";local U=HiddenEvent.farmHeight or L and(getgenv().YPosFruit or 20)or 20;return n.CFrame*CFrame.new(L and-7 or 7,if IsHiddenDodging()then U+(IsHiddenBoss(c)and 40 or 25)else U,0);end
+	GetHiddenFarmCFrame = function(c)local n,L=c.HumanoidRootPart,Settings["Select Weapon"]=="Blox Fruit";local U=HiddenEvent.farmHeight or L and(getgenv().YPosFruit or 20)or 20;return n.CFrame*CFrame.new(L and-7 or 7,(function() if IsHiddenDodging() then return U+(IsHiddenBoss(c)and 40 or 25) else return U end end)(),0);end
 
 	KillHiddenEnemy = function(fighting)
 		local now = tick()
@@ -9755,11 +9721,11 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		HiddenEvent.fighting = fighting
 		WatchHiddenEnemy(fighting)
 
-		while true do
+		while true do local __brk = false repeat 
 			task.wait()
 
 			if not fighting:FindFirstChild("HumanoidRootPart") then
-				break
+				__brk = true break
 			else
 				SizePart(fighting)
 
@@ -9778,11 +9744,11 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 				HiddenMove(GetHiddenFarmCFrame(fighting))
 				getgenv().ClickM1(fighting, true)
 				if not (not IsHiddenTarget(fighting) or not Settings["Auto Secret Quest"] or tick() - now > n) then
-					continue
+					break
 				end
-				break
+				__brk = true break
 			end
-		end
+		until true if __brk then break end end
 
 		HiddenEvent.fighting = nil
 		StopHiddenDodge()
@@ -10202,7 +10168,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		local now = tick()
 		local n = 0
 
-		while true do
+		while true do local __brk = false repeat 
 			if tick() - now < 20 and n < #arg2 then
 				task.wait(0.4)
 				local v6 = fn()
@@ -10212,7 +10178,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 					if #options2 == 0 then
 						pcall(DialogueController.advance)
-						continue
+						break
 					else
 						local v7 = nil
 
@@ -10223,19 +10189,19 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 						end
 
 						if v7 then
-							n += 1
+							n = n + (1)
 							DialogueController.select(v7)
 							task.wait(1)
-							continue
+							break
 						end
 					end
 				else
-					continue
+					break
 				end
 			end
 
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		task.wait(1)
 		pcall(DialogueController.close)
@@ -10343,30 +10309,30 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		end
 		local response2
 
-		while Settings["Auto Secret Quest"] do
+		while Settings["Auto Secret Quest"] do repeat 
 			local str2 = "/4: watching " .. #response.Manifest .. " ships"
 			SetHiddenStep("Lookout round " .. tostring(response.Round) .. str2)
 			local now = tick()
 
-			while true do
+			while true do local __brk = false repeat 
 				response2 = arg:InvokeServer("ObservationFinished", response.Token)
 				local v6 = nil
 
 				if type(response2) ~= "table" then
 					response2 = v6
-					break
+					__brk = true break
 				else
 					if response2.Ready == false then
 						task.wait(math.clamp(tonumber(response2.RetryAfter) or 1, 0.2, 5))
 						response2 = nil
 						if not (tick() - now > 120) then
-							continue
+							break
 						end
 					end
 
-					break
+					__brk = true break
 				end
-			end
+			until true if __brk then break end end
 
 			if not response2 then
 				arg:InvokeServer("AbortAttempt", response.Token)
@@ -10376,7 +10342,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 			for _, v6 in ipairs(response.Manifest) do
 				if v6.Boat == response2.TargetBoat and v6.FlagColor == response2.TargetFlagColor then
-					n += 1
+					n = n + (1)
 				end
 			end
 
@@ -10397,7 +10363,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 			if type(response3.NextRound) == "table" and type(response3.NextRound.Token) == "string" then
 				response = response3.NextRound
 				task.wait(1.25)
-				continue
+				break
 			end
 
 			if type(response3.FinaleToken) == "string" then
@@ -10408,7 +10374,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 			HiddenEvent.checked = 0
 			HiddenNotify("Lookout duty complete", nil, "success")
 			return "Lookout duty complete"
-		end
+		until true end
 
 		return "Lookout stopped"
 	end
@@ -10471,11 +10437,11 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 		local n = 0
 		local cframe = nil
 
-		for k, v6 in pairs(tbl9) do
+		for k, v6 in pairs(tbl9) do local __brk = false repeat 
 			if not (not Settings["Auto Secret Quest"] or not fn2(v6.Position + Vector3.new(0, 3, 0))) then
 				SetHiddenStep("Roll snowball " .. n + 1 .. "/3")
 				arg:FireServer("GrabSnowball", k)
-				n += 1
+				n = n + (1)
 				local tbl12 = { i = n, c = humanoidRootPart.CFrame, d = 5 }
 				table.insert(tbl10, tbl12)
 				local n3 = humanoidRootPart.CFrame.LookVector * Vector3.new(1, 0, 1)
@@ -10508,21 +10474,21 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 				end
 
 				task.wait(1)
-				continue
+				break
 			end
 
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		local now = tick()
 
-		while true do
+		while true do local __brk = false repeat 
 			task.wait(0.5)
 			if not (flag or tick() - now > 8) then
-				continue
+				break
 			end
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		Snowman:Disconnect()
 
@@ -10594,14 +10560,14 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 			game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("LoadFruit", v7)
 			local now = tick()
 
-			while true do
+			while true do local __brk = false repeat 
 				task.wait(0.3)
 				v6 = FindHiddenFruitTool()
 				if not (v6 or tick() - now > 4) then
-					continue
+					break
 				end
-				break
-			end
+				__brk = true break
+			until true if __brk then break end end
 
 			if not v6 then
 				return false, "could not load a Blox Fruit from inventory, skipping this quest"
@@ -10623,13 +10589,13 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 		local now = tick()
 
-		while true do
+		while true do local __brk = false repeat 
 			task.wait(0.3)
 			if not (localPlayer.Data.DevilFruit.Value ~= "" or tick() - now > 4) then
-				continue
+				break
 			end
-			break
-		end
+			__brk = true break
+		until true if __brk then break end end
 
 		if localPlayer.Data.DevilFruit.Value == "" then
 			return false, "could not eat the Blox Fruit, skipping this quest"
@@ -10833,7 +10799,7 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 				local v7 = EquipHiddenWeapon(str2 == "Fruit" and "Blox Fruit" or str2)
 
-				while true do
+				while true do local __brk = false repeat 
 					task.wait()
 
 					if v7 and v7.Parent ~= localPlayer.Character then
@@ -10841,10 +10807,10 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 					end
 
 					if not (workspace:GetServerTimeNow() >= n - 0.08 or not Settings["Auto Secret Quest"]) then
-						continue
+						break
 					end
-					break
-				end
+					__brk = true break
+				until true if __brk then break end end
 
 				FaceHiddenTarget(arg2.Position)
 
@@ -10978,11 +10944,11 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 
 			local function fn2(arg)
 				if type(arg) == "string" then
-					str2 ..= " " .. arg
+					str2 = str2 .. (" " .. arg)
 				elseif type(arg) == "table" then
 					for _, v6 in pairs(arg) do
 						if type(v6) == "string" then
-							str2 ..= " " .. v6
+							str2 = str2 .. (" " .. v6)
 						end
 					end
 				end
@@ -11364,20 +11330,20 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 			return true
 		end
 
-		for _, v7 in ipairs(HiddenQuests) do
+		for _, v7 in ipairs(HiddenQuests) do repeat 
 			if arg["Sea1/" .. v7.Island .. "/" .. v7.Name] ~= true then
 				if v7.BossNames then
 					if IsHiddenBossHinted(v6, v7.HintIsland or v7.Island, v7.BossNames) then
 						return true
 					end
-					continue
+					break
 				end
 
 				if v6.Island == (v7.HintIsland or v7.Island) then
 					return true
 				end
 			end
-		end
+		until true end
 
 		return false
 	end
@@ -11401,43 +11367,8 @@ StatusHiddenBoss = HiddenEventSection.CreateLabel({ Title = "Title Awakened Boss
 	end
 
 	QueueHiddenReload = function()
-		local queueOnTeleport = rawget(getgenv(), "queue_on_teleport") or syn and syn.queue_on_teleport or fluxus and fluxus.queue_on_teleport
-		if not queueOnTeleport then
-			return false
-		end
-
-		pcall(function()
-			queueOnTeleport([[task.spawn(function()
-	repeat
-		task.wait(1)
-	until game:IsLoaded()
-	local players = game:GetService("Players")
-	repeat
-		task.wait(0.5)
-	until players.LocalPlayer
-	local player = players.LocalPlayer
-	repeat
-		task.wait(0.5)
-	until player:FindFirstChild("PlayerGui")
-	local waited = 0
-	while not player.Character and waited < 240 do
-		task.wait(2)
-		waited = waited + 2
-		if waited > 14 and player.PlayerGui:FindFirstChild("TeamSelection") then
-			pcall(function()
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
-			end)
-		end
-	end
-	local character = player.Character or player.CharacterAdded:Wait()
-	character:WaitForChild("HumanoidRootPart", 60)
-	task.wait(5)
-	pcall(function()
-		loadstring(readfile("BF-VxezeHub.lua"))()
-	end)
-end)]])
-		end)
-
+		-- Không queue_on_teleport lần 2 (tránh script chạy 2 lần sau teleport / load nhầm BF-VxezeHub.lua).
+		-- Việc tự chạy lại sau hop đã do toggle "Auto Load Script" của Banana đảm nhiệm.
 		return true
 	end
 
@@ -12046,17 +11977,17 @@ end)]])
 					v11 = v12
 				end
 
-				for _, v13 in ipairs(tbl11) do
+				for _, v13 in ipairs(tbl11) do local __brk = false repeat 
 					if not v11 then
 						if v13 <= #tbl10 and not table.find(leverPuzzle.known, v13) and not leverPuzzle.wrong[#leverPuzzle.known + 1 .. ":" .. v13] then
 							v11 = v13
 						end
 
-						continue
+						break
 					end
 
-					break
-				end
+					__brk = true break
+				until true if __brk then break end end
 			end
 
 			if not v11 then
@@ -12066,7 +11997,7 @@ end)]])
 			local vector = Vector3.zero
 
 			for _, v12 in ipairs(tbl10) do
-				vector += v12.Position / #tbl10
+				vector = vector + (v12.Position / #tbl10)
 			end
 
 			HiddenEvent.stallGrace = tick() + 5
@@ -12607,13 +12538,13 @@ end)]])
 						HoldHiddenPrompt(sewerEntrancePrompt)
 						local now = tick()
 
-						while true do
+						while true do local __brk = false repeat 
 							task.wait(0.3)
 							if not (cranes and cranes:GetAttribute("SewerEntranceLifted") or tick() - now > 5) then
-								continue
+								break
 							end
-							break
-						end
+							__brk = true break
+						until true if __brk then break end end
 
 						task.wait(2.6)
 					end
@@ -12775,8 +12706,8 @@ end)]])
 
 				for _, footprint in pairs(v11.footprints) do
 					if typeof(footprint) == "CFrame" then
-						vector += footprint.Position
-						n += 1
+						vector = vector + (footprint.Position)
+						n = n + (1)
 					end
 				end
 
@@ -14424,7 +14355,7 @@ end)]])
 					n = n and localPlayer:DistanceFromCharacter(n.World.Position) or 1000000
 
 					if v8.Island == HiddenEvent.currentIsland then
-						n *= 0.0001
+						n = n * (0.0001)
 					end
 
 					tbl10[v8] = 1 + math.max(n - (tbl11[v8.Island] or 0) * 4000, 0)
@@ -14441,11 +14372,11 @@ end)]])
 		HiddenEvent.waiting = HiddenEvent.waiting or {}
 		local n = 0
 
-		for _, v8 in ipairs(tbl9) do
+		for _, v8 in ipairs(tbl9) do repeat 
 			local str2 = "Sea1/" .. v8.Island .. "/" .. v8.Name
 
 			if v6[str2] ~= true then
-				n += 1
+				n = n + (1)
 			end
 
 			local flag3 = v6[str2] ~= true and (not v8.Requires or v6[v8.Requires] == true)
@@ -14506,7 +14437,7 @@ end)]])
 
 					HiddenEvent.waiting[v8.Name] = awakenedBossQuests
 					HiddenEvent.skipped[v8.Name] = tick() + 30
-					continue
+					break
 				end
 
 				if HiddenEvent.current ~= v8.Name then
@@ -14603,7 +14534,7 @@ end)]])
 
 				return
 			end
-		end
+		until true end
 
 		HiddenEvent.current = nil
 
@@ -14718,8 +14649,8 @@ end)]])
 				local doneCount = 0
 
 				for _, v7 in pairs(v6) do
-					n += 1
-					doneCount += v7 == true and 1 or 0
+					n = n + (1)
+					doneCount = doneCount + (v7 == true and 1 or 0)
 				end
 
 				if HiddenEvent.doneCount ~= doneCount then
@@ -14901,13 +14832,13 @@ FishingSection.CreateToggle(
 									P = game:GetService("RunService").Heartbeat:Connect(function()
 										local c = workspace:GetServerTimeNow()
 										local D = 0.02 + (c - H) % C * J
-										D = if D >= 0.98 then 0.98 - (D - 0.98) else D
+										D = (function() if D >= 0.98 then return 0.98 - (D - 0.98) else return D end end)()
 										local J
 										if F then
 											J = 0.5
 										else
 											J = 0.4 + (c - H) % (C * 3) * q
-											J = if J >= 0.6 then 0.6 - (J - 0.6) else J
+											J = (function() if J >= 0.6 then return 0.6 - (J - 0.6) else return J end end)()
 										end
 										if math.abs(D - J) < 0.03 then
 											y:FireServer("Jump", workspace:GetServerTimeNow())
@@ -15136,10 +15067,10 @@ FishingSection.CreateToggle(
 function CheckChestplr()
 	local X
 	for P, P in pairs(t.Backpack:GetChildren()) do
-		X = if string.find(P.Name, "Chest") then P else X
+		X = (function() if string.find(P.Name, "Chest") then return P else return X end end)()
 	end
 	for P, P in pairs(t.Character:GetChildren()) do
-		X = if string.find(P.Name, "Chest") then P else X
+		X = (function() if string.find(P.Name, "Chest") then return P else return X end end)()
 	end
 	return X
 end
@@ -15419,7 +15350,7 @@ function DetectQuestSeaDragon()
 end
 function checkboat()
 	local V = t.Name
-	V = if Settings["Auto Sea Event With Friend"] and Settings["Auto Sea Event"] then Settings["Select Friend"] else V
+	V = (function() if Settings["Auto Sea Event With Friend"] and Settings["Auto Sea Event"] then return Settings["Select Friend"] else return V end end)()
 	local y, P, Y = next, game:GetService("Workspace").Boats:GetChildren()
 	for H, H in y, P, Y do
 		if H:IsA("Model") then
@@ -15455,7 +15386,7 @@ function TeleportSeaEvents(V)
 		end
 	else
 		local y = V.Name
-		local P = if Settings["Use Click M1 Fruit For Sea Event"] then 20 else if y == "Terrorshark" then 60 else 20
+		local P = ((Settings["Use Click M1 Fruit For Sea Event"]) and 20 or ((y == "Terrorshark") and 60 or 20))
 		if V:FindFirstChildWhichIsA("Humanoid") and V.Humanoid.Health > 0 then
 			toTarget(V.HumanoidRootPart.CFrame * CFrame.new(0, P, 0))
 		end
@@ -15576,7 +15507,7 @@ function AutoQuestDojo()
 				local Y = DecectPartRoughSea()
 				if Y then
 					wait(1)
-					V = if V == 0 then 7000 else 0
+					V = ((V == 0) and 7000 or 0)
 					Instance.new("IntValue", Y).Name = "Ignored"
 					wait(0.5)
 				end
@@ -15675,7 +15606,7 @@ function AutoQuestDojo()
 				local P = DecectPartRoughSea()
 				if P then
 					wait(1)
-					V = if V == 0 then 7000 else 0
+					V = ((V == 0) and 7000 or 0)
 					Instance.new("IntValue", P).Name = "Ignored"
 					wait(0.5)
 				end
@@ -15704,7 +15635,7 @@ function AutoQuestDojo()
 				local Y = DecectPartRoughSea()
 				if Y then
 					wait(1)
-					V = if V == 0 then 7000 else 0
+					V = ((V == 0) and 7000 or 0)
 					Instance.new("IntValue", Y).Name = "Ignored"
 					wait(0.5)
 				end
@@ -16135,7 +16066,7 @@ function AutoChest()
 	end
 	y = GetNearestChest()
 	if y then
-		f += 1
+		f = f + (1)
 		local P
 		repeat
 			task.wait()
@@ -16441,12 +16372,10 @@ function ObservationV2()
 			local y, P, Y = next, game.workspace.Enemies:GetChildren()
 			local H
 			for C, C in y, P, Y do
-				H = if C:IsA("Model")
+				H = (function() if C:IsA("Model")
 						and C.Name == "Marine Commodore"
 						and (C:FindFirstChild("HumanoidRootPart"))
-						and C.Humanoid.Health > 0
-					then C
-					else H
+						and C.Humanoid.Health > 0 then return C else return H end end)()
 			end
 			if not game:GetService("Lighting").Blur.Enabled then
 				if H then
@@ -16700,9 +16629,7 @@ AutoKillBossSection.CreateButton({ Title = "Refresh Boss" }, function()
 	y:GetNewList(TableBoss())
 end)
 function AutoKillBoss()
-	local y = if Settings["Kill All Boss"]
-		then (CheckNameBoss(TableBoss()))
-		else (CheckNameBoss(Settings["Select Boss"]))
+	local y = (function() if Settings["Kill All Boss"] then return (CheckNameBoss(TableBoss())) else return (CheckNameBoss(Settings["Select Boss"])) end end)()
 	if y then
 		repeat
 			wait()
@@ -16945,12 +16872,10 @@ RaidsSection.CreateToggle({ Title = "Auto Raid", Desc = nil, Default = Settings[
 				local E, E = pcall(function()
 					local l = game.PlaceId == getgenv().CheckPlaceId2
 						and (game:GetService("Workspace").Map.CircleIsland.RaidSummon2.Button:FindFirstChild("Main"))
-					l = if game.PlaceId == getgenv().CheckPlaceId
-						then game:GetService("Workspace").Map:FindFirstChild("Boat Castle") and (game:GetService(
+					l = (function() if game.PlaceId == getgenv().CheckPlaceId then return game:GetService("Workspace").Map:FindFirstChild("Boat Castle") and (game:GetService(
 							"Workspace"
 						).Map["Boat Castle"].RaidSummon2.Button
-							:FindFirstChild("Main"))
-						else l
+							:FindFirstChild("Main")) else return l end end)()
 					print("cc")
 					if not t.PlayerGui.Main.TopHUDList.RaidTimer.Visible and not CheckInRaid() then
 						if getgenv().TickTeleCastle and tick() - getgenv().TickTeleCastle < 5 then
@@ -17152,10 +17077,8 @@ end
 function Multiraid(b)
 	local E = game.PlaceId == getgenv().CheckPlaceId2
 		and (game:GetService("Workspace").Map.CircleIsland.RaidSummon2.Button:FindFirstChild("Main"))
-	E = if game.PlaceId == getgenv().CheckPlaceId
-		then game:GetService("Workspace").Map:FindFirstChild("Boat Castle")
-			and (game:GetService("Workspace").Map["Boat Castle"].RaidSummon2.Button:FindFirstChild("Main"))
-		else E
+	E = (function() if game.PlaceId == getgenv().CheckPlaceId then return game:GetService("Workspace").Map:FindFirstChild("Boat Castle")
+			and (game:GetService("Workspace").Map["Boat Castle"].RaidSummon2.Button:FindFirstChild("Main")) else return E end end)()
 	if not t.PlayerGui.Main.TopHUDList.RaidTimer.Visible and not CheckInRaid() then
 		if not E then
 			if not DetectItemPlr("Special Microchip") then
@@ -17622,7 +17545,7 @@ DungeonSection.CreateDropdown(
 )
 function AutoPickDungeonCard()
 	local b, E, l, y = Settings["Select Card Priority"] or {}, {}, 1 / 0
-	for P, Y in pairs(t.PlayerGui:GetChildren()) do
+	for P, Y in pairs(t.PlayerGui:GetChildren()) do repeat 
 		local H, C, J =
 			Y:FindFirstChild("DisplayName", true),
 			Y:FindFirstChild("BuffDescription", true),
@@ -17631,7 +17554,7 @@ function AutoPickDungeonCard()
 			P = DisplayNameToKey[stripFont(H.Text)]
 			if P then
 				if IsSkillCooldown(P) then
-					continue
+					break
 				end
 				for Y, H in ipairs(b) do
 					if DisplayNameToKey[H] == P then
@@ -17644,7 +17567,7 @@ function AutoPickDungeonCard()
 				table.insert(E, J)
 			end
 		end
-	end
+	until true end
 	if y then
 		print("AUTO PICK (PRIORITY INDEX):", l)
 		for l, l in pairs(getconnections(y.Activated)) do
@@ -18142,7 +18065,7 @@ function manageTween(J, F, q, c)
 	end
 	y[J] = D
 	getgenv()[c] = D
-	P += 1
+	P = P + (1)
 	l(true)
 	getgenv().noclip = true
 	-- NOCLIP THUYỀN: set CanCollide=false mỗi frame (Stepped, trước bước physics) cho cả thuyền và nhân vật.
@@ -18277,7 +18200,7 @@ function SpinBoat()
 		if NumberSpinBoat >= 6 then
 			NumberSpinBoat = 1
 		else
-			NumberSpinBoat += 1
+			NumberSpinBoat = NumberSpinBoat + (1)
 		end
 	end
 end
@@ -18306,9 +18229,7 @@ function BuyBoatAndTeleBoat(P)
 	end
 	if not Y or Y and t:DistanceFromCharacter(Y.VehicleSeat.Position) >= 4000 then
 		local H = CFrame.new(-13.488054275512695, 10.311711311340332, 2927.692)
-		H = if game.PlaceId == getgenv().CheckPlaceId
-			then (CFrame.new(-16204.0810546875, 9.0863618850708, 479.2259521484375))
-			else H
+		H = (function() if game.PlaceId == getgenv().CheckPlaceId then return (CFrame.new(-16204.0810546875, 9.0863618850708, 479.2259521484375)) else return H end end)()
 		if (H.Position - t.Character.HumanoidRootPart.Position).Magnitude > 8 then
 			if
 				(H.Position - t.Character.HumanoidRootPart.Position).Magnitude > 1000
@@ -18335,7 +18256,7 @@ function BuyBoatAndTeleBoat(P)
 			end
 			local C = H == "Brigade"
 			game:GetService("ReplicatedStorage").Remotes.CommF_
-				:InvokeServer("BuyBoat", if C or H == "GrandBrigade" then "Pirate" .. H else H)
+				:InvokeServer("BuyBoat", (function() if C or H == "GrandBrigade" then return "Pirate" .. H else return H end end)())
 			task.wait(3)
 		end
 	else
@@ -18353,14 +18274,12 @@ function BuyBoatAndTeleBoat(P)
 			local H, C = CFrame.new(654.3875732421875, Y.WorldPivot.Y, 6321.95947265625), DecectPartRoughSea()
 			if C then
 				task.wait(1)
-				V = if V == 0 then 7000 else 0
+				V = ((V == 0) and 7000 or 0)
 				Instance.new("IntValue", C).Name = "Ignored"
 				task.wait(0.5)
 			end
 			getgenv().RoughSea = Settings["Teleport Boat Other CFrame if Rough Sea"] and V or 0
-			H = if game.PlaceId == getgenv().CheckPlaceId
-				then SelectedZoneCFrame() * CFrame.new(0, Y.WorldPivot.Y, 0 + RoughSea)
-				else H
+			H = (function() if game.PlaceId == getgenv().CheckPlaceId then return SelectedZoneCFrame() * CFrame.new(0, Y.WorldPivot.Y, 0 + RoughSea) else return H end end)()
 			if (Y.VehicleSeat.Position - H.Position).Magnitude > 200 then
 				C = CFrame.new(H.Position.X, Y.WorldPivot.Y, H.Position.Z)
 				if not t.Character.Humanoid.Sit then
@@ -18454,7 +18373,7 @@ function DetectSeaEvents(b)
 				if
 					tonumber(
 							(
-								(if string.find(P, ",") then (Y:gsub("%d+,%d+/", "")) else (Y:gsub("%d+/", ""))):gsub(
+								((function() if string.find(P, ",") then return (Y:gsub("%d+,%d+/", "")) else return (Y:gsub("%d+/", "")) end end)()):gsub(
 									",",
 									""
 								)
@@ -18513,9 +18432,7 @@ function UseSkillGun()
 		equiptool(b.Name)
 		return
 	end
-	local X = if b and (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip]))
-		then (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip]))
-		else nil
+	local X = (function() if b and (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip])) then return (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip])) else return nil end end)()
 	if X then
 		b = X.Parent.Name
 		equiptool(b)
@@ -18555,15 +18472,7 @@ function AutoUseSkillSeabeast(b)
 		equiptool(P.Name)
 		return
 	end
-	Y = if X and (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip]))
-		then (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip]))
-		else if l and (CheckCDSkillTransformation(l, Settings["Select Skills " .. l.ToolTip]))
-			then (CheckCDSkillTransformation(l, Settings["Select Skills " .. l.ToolTip]))
-			else if P and (CheckCDSkillTransformation(P, Settings["Select Skills " .. P.ToolTip]))
-				then (CheckCDSkillTransformation(P, Settings["Select Skills " .. P.ToolTip]))
-				else if _ and (CheckCDSkillTransformation(_, Settings["Select Skills " .. _.ToolTip]))
-					then (CheckCDSkillTransformation(_, Settings["Select Skills " .. _.ToolTip]))
-					else nil
+	Y = (function() if X and (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip])) then return (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip])) else return (function() if l and (CheckCDSkillTransformation(l, Settings["Select Skills " .. l.ToolTip])) then return (CheckCDSkillTransformation(l, Settings["Select Skills " .. l.ToolTip])) else return (function() if P and (CheckCDSkillTransformation(P, Settings["Select Skills " .. P.ToolTip])) then return (CheckCDSkillTransformation(P, Settings["Select Skills " .. P.ToolTip])) else return (function() if _ and (CheckCDSkillTransformation(_, Settings["Select Skills " .. _.ToolTip])) then return (CheckCDSkillTransformation(_, Settings["Select Skills " .. _.ToolTip])) else return nil end end)() end end)() end end)() end end)()
 	if Y then
 		X = Y.Parent.Name
 		equiptool(X)
@@ -18584,9 +18493,7 @@ function UseSkillonlyFruit()
 		equiptool(b.Name)
 		return
 	end
-	local X = if b and (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip]))
-		then (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip]))
-		else nil
+	local X = (function() if b and (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip])) then return (CheckCDSkillTransformation(b, Settings["Select Skills " .. b.ToolTip])) else return nil end end)()
 	if X then
 		b = X.Parent.Name
 		equiptool(b)
@@ -18834,18 +18741,12 @@ ToggleFindMirage = FarmingSeaEventSection.CreateToggle(
 							local Y, H, Z =
 								CFrame.new(-118834.515625, 160, -78.9505844116211) * CFrame.new(0, 0, 99999999),
 								CFrame.new(-32975.9921875, 160, 25963.7109375),
-								if Settings["Will Back When over 10km"]
-									then if DistanceFindLeviathan() >= 12000
-										then true
-										else if DistanceFindLeviathan() <= 4800 then false else false
-									else false
+								(function() if Settings["Will Back When over 10km"] then return (function() if DistanceFindLeviathan() >= 12000 then return true else return (function() if DistanceFindLeviathan() <= 4800 then return false else return false end end)() end end)() else return false end end)()
 							repeat
 								task.wait(0.5)
 								NoclipBoat(P)
 								if Settings["Will Back When over 10km"] then
-									Z = if DistanceFindLeviathan() >= 10000
-										then true
-										else if DistanceFindLeviathan() <= 4800 then false else Z
+									Z = (function() if DistanceFindLeviathan() >= 10000 then return true else return (function() if DistanceFindLeviathan() <= 4800 then return false else return Z end end)() end end)()
 									if Z then
 										manageTween(P.VehicleSeat, H, 350, "TweenBoatBack")
 									end
@@ -18973,9 +18874,7 @@ function AutoSpawnKitsune()
 	end
 	if not P then
 		local Y = CFrame.new(-13.488054275512695, 10.311711311340332, 2927.692)
-		Y = if game.PlaceId == getgenv().CheckPlaceId
-			then (CFrame.new(-16204.0810546875, 9.0863618850708, 479.2259521484375))
-			else Y
+		Y = (function() if game.PlaceId == getgenv().CheckPlaceId then return (CFrame.new(-16204.0810546875, 9.0863618850708, 479.2259521484375)) else return Y end end)()
 		if (Y.Position - t.Character.HumanoidRootPart.Position).Magnitude > 8 then
 			toTarget(Y)
 		else
@@ -18986,7 +18885,7 @@ function AutoSpawnKitsune()
 			end
 			local H = Y == "Brigade"
 			game:GetService("ReplicatedStorage").Remotes.CommF_
-				:InvokeServer("BuyBoat", if H or Y == "GrandBrigade" then "Pirate" .. Y else Y)
+				:InvokeServer("BuyBoat", (function() if H or Y == "GrandBrigade" then return "Pirate" .. Y else return Y end end)())
 			task.wait(3)
 		end
 		return
@@ -19161,7 +19060,7 @@ function DetectSeaEventDodge(g)
 				if
 					tonumber(
 							(
-								(if string.find(I, ",") then (y:gsub("%d+,%d+/", "")) else (y:gsub("%d+/", ""))):gsub(
+								((function() if string.find(I, ",") then return (y:gsub("%d+,%d+/", "")) else return (y:gsub("%d+/", "")) end end)()):gsub(
 									",",
 									""
 								)
@@ -19231,11 +19130,7 @@ function AutoFindLeviathan()
 			local y, P, Y, H, Z =
 				CFrame.new(-118834.515625, 160, -78.9505844116211) * CFrame.new(0, 0, 99999999),
 				CFrame.new(-32975.9921875, 160, 25963.7109375),
-				if Settings["Will Back When over 10km"]
-					then if DistanceFindLeviathan() >= 12000
-						then true
-						else if DistanceFindLeviathan() <= 4800 then false else false
-					else false,
+				(function() if Settings["Will Back When over 10km"] then return (function() if DistanceFindLeviathan() >= 12000 then return true else return (function() if DistanceFindLeviathan() <= 4800 then return false else return false end end)() end end)() else return false end end)(),
 				g.VehicleSeat.Position.Y,
 				g.VehicleSeat.BodyVelocity.MaxForce
 			wait(0.5)
@@ -19328,9 +19223,7 @@ function AutoFindLeviathan()
 					J = false
 				end
 				if Settings["Will Back When over 10km"] then
-					Y = if DistanceFindLeviathan() >= 10000
-						then true
-						else if DistanceFindLeviathan() <= 4800 then false else Y
+					Y = (function() if DistanceFindLeviathan() >= 10000 then return true else return (function() if DistanceFindLeviathan() <= 4800 then return false else return Y end end)() end end)()
 					if Y then
 						manageTween(g.VehicleSeat, P, 350, "TweenBoatBack")
 					end
@@ -19505,9 +19398,7 @@ function checkboatMulti()
 		Settings["Select Owner Boat Find Leviathan"], next, game:GetService("Workspace").Boats:GetChildren()
 	local y
 	for P, P in g, I, _ do
-		y = if P:IsA("Model")
-			then if P:FindFirstChild("Owner") and tostring(P.Owner.Value) == s and P.Humanoid.Value > 0 then P else y
-			else y
+		y = (function() if P:IsA("Model") then return (function() if P:FindFirstChild("Owner") and tostring(P.Owner.Value) == s and P.Humanoid.Value > 0 then return P else return y end end)() else return y end end)()
 	end
 	if y then
 		I, g, s = next, y:GetChildren()
@@ -19574,10 +19465,10 @@ LeviathanEventSection.CreateToggle(
 						if game.workspace._WorldOrigin.Locations:FindFirstChild("Frozen Dimension") then
 							local I
 							for _, _ in pairs(game:GetService("Workspace").NPCs:GetChildren()) do
-								I = if _.Name == "Frozen Watcher" then _ else I
+								I = (function() if _.Name == "Frozen Watcher" then return _ else return I end end)()
 							end
 							for _, _ in pairs(game:GetService("ReplicatedStorage").NPCs:GetChildren()) do
-								I = if _.Name == "Frozen Watcher" then _ else I
+								I = (function() if _.Name == "Frozen Watcher" then return _ else return I end end)()
 							end
 							if I and t:DistanceFromCharacter(I.HumanoidRootPart.Position) < 8 then
 								game.ReplicatedStorage.Remotes.CommF_:InvokeServer("OpenLeviathanGate")
@@ -19776,7 +19667,7 @@ local function b(s, X)
 	l = I:Dot(s)
 	X, g = math.acos(math.clamp(l, -1, 1)), I:Cross(s)
 	I = math.deg(X)
-	return if g.Y < 0 then -I else I
+	return (function() if g.Y < 0 then return -I else return I end end)()
 end
 local function s(X, g)
 	local l = X.PrimaryPart.Position
@@ -19916,7 +19807,7 @@ LeviathanEventSection.CreateToggle(
 )
 function checkboatBeastHunter()
 	local b = Settings["Select Owner Boat Beast Hunter"]
-	b = if Settings["Use Your Boat Beast Hunter"] then t.Name else b
+	b = (function() if Settings["Use Your Boat Beast Hunter"] then return t.Name else return b end end)()
 	local X, g, l = next, game:GetService("Workspace").Boats:GetChildren()
 	for I, I in X, g, l do
 		if I:IsA("Model") then
@@ -20451,9 +20342,9 @@ function DetectGearUp(b)
 	s.Gear2.GearType = b.RaceDetails.Gears[1] == "A" and "Alpha" or b.RaceDetails.Gears[1] == "B" and "Omega" or "Blank"
 	s.Gear3.GearType = b.RaceDetails.Gears[2] == "A" and "Alpha" or b.RaceDetails.Gears[2] == "B" and "Omega" or "Blank"
 	s.Gear4.GearType = b.RaceDetails.Gears[3] == "A" and "Alpha" or b.RaceDetails.Gears[3] == "B" and "Omega" or "Blank"
-	s.Gear2.Unlocked = if b.RaceDetails.A + b.RaceDetails.B >= 0 then g else false
-	s.Gear3.Unlocked = if b.RaceDetails.A + b.RaceDetails.B >= 1 then g else false
-	s.Gear4.Unlocked = if b.RaceDetails.A + b.RaceDetails.B >= 2 then g else false
+	s.Gear2.Unlocked = (function() if b.RaceDetails.A + b.RaceDetails.B >= 0 then return g else return false end end)()
+	s.Gear3.Unlocked = (function() if b.RaceDetails.A + b.RaceDetails.B >= 1 then return g else return false end end)()
+	s.Gear4.Unlocked = (function() if b.RaceDetails.A + b.RaceDetails.B >= 2 then return g else return false end end)()
 	s.Gear5.CanSelect = false
 	s.Gear5.Unlocked = false
 	if b.RaceDetails.C >= 1 then
@@ -20473,9 +20364,9 @@ function DetectGearUp(b)
 		s.Gear3.CanSelect = false
 		s.Gear4.CanSelect = false
 	else
-		s.Gear2.CanSelect = if b.RaceDetails.A + b.RaceDetails.B == 0 then g else false
-		s.Gear3.CanSelect = if b.RaceDetails.A + b.RaceDetails.B == 1 then g else false
-		s.Gear4.CanSelect = if b.RaceDetails.A + b.RaceDetails.B >= 2 then g else false
+		s.Gear2.CanSelect = (function() if b.RaceDetails.A + b.RaceDetails.B == 0 then return g else return false end end)()
+		s.Gear3.CanSelect = (function() if b.RaceDetails.A + b.RaceDetails.B == 1 then return g else return false end end)()
+		s.Gear4.CanSelect = (function() if b.RaceDetails.A + b.RaceDetails.B >= 2 then return g else return false end end)()
 		if b.RaceDetails.A + b.RaceDetails.B >= 3 then
 			s.Gear2.CanSelect = true
 			s.Gear3.CanSelect = true
@@ -20636,7 +20527,7 @@ function AutoUpgradeRaceDraco()
 					local g = DecectPartRoughSea()
 					if g then
 						wait(1)
-						V = if V == 0 then 7000 else 0
+						V = ((V == 0) and 7000 or 0)
 						Instance.new("IntValue", g).Name = "Ignored"
 						wait(0.5)
 					end
@@ -20878,15 +20769,7 @@ function AutoUseSkillFixLava(b)
 		equiptool(R.Name)
 		return
 	end
-	l = if s and (CheckCDSkillTransformation(s, Settings["Select Skills " .. s.ToolTip]))
-		then (CheckCDSkillTransformation(s, Settings["Select Skills " .. s.ToolTip]))
-		else if X and (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip]))
-			then (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip]))
-			else if R and (CheckCDSkillTransformation(R, Settings["Select Skills " .. R.ToolTip]))
-				then (CheckCDSkillTransformation(R, Settings["Select Skills " .. R.ToolTip]))
-				else if g and (CheckCDSkillTransformation(g, Settings["Select Skills " .. g.ToolTip]))
-					then (CheckCDSkillTransformation(g, Settings["Select Skills " .. g.ToolTip]))
-					else nil
+	l = (function() if s and (CheckCDSkillTransformation(s, Settings["Select Skills " .. s.ToolTip])) then return (CheckCDSkillTransformation(s, Settings["Select Skills " .. s.ToolTip])) else return (function() if X and (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip])) then return (CheckCDSkillTransformation(X, Settings["Select Skills " .. X.ToolTip])) else return (function() if R and (CheckCDSkillTransformation(R, Settings["Select Skills " .. R.ToolTip])) then return (CheckCDSkillTransformation(R, Settings["Select Skills " .. R.ToolTip])) else return (function() if g and (CheckCDSkillTransformation(g, Settings["Select Skills " .. g.ToolTip])) then return (CheckCDSkillTransformation(g, Settings["Select Skills " .. g.ToolTip])) else return nil end end)() end end)() end end)() end end)()
 	if l then
 		X = l.Parent.Name
 		equiptool(X)
@@ -21678,7 +21561,7 @@ function DetectSeabeast()
 			local g, R = l.HealthBBG.Frame.TextLabel.Text:gsub("/%d+,%d+", ""), l.HealthBBG.Frame.TextLabel.Text
 			if
 				tonumber(
-					((if string.find(g, ",") then (R:gsub("%d+,%d+/", "")) else (R:gsub("%d+/", ""))):gsub(",", ""))
+					(((function() if string.find(g, ",") then return (R:gsub("%d+,%d+/", "")) else return (R:gsub("%d+/", "")) end end)()):gsub(",", ""))
 				) >= 90000
 			then
 				return l
@@ -22116,7 +21999,7 @@ function GetCyborg()
 			end
 			local m = GetNearestChest()
 			if m then
-				g += 1
+				g = g + (1)
 				local g
 				repeat
 					task.wait()
@@ -22839,15 +22722,13 @@ function CheckMultiPlayerNearDoor()
 	local l = 0
 	for S, I in g, R, m do
 		S = GetOtherPlayerRaces()[I.Name]
-		l = if S
+		l = (function() if S
 				and (DetectNameAbility(I.HumanoidRootPart))
 				and (
 						I.HumanoidRootPart.Position
 						- game:GetService("Workspace").Map["Temple of Time"][S .. "Corridor"].Door.Door.RightDoor.Union.Position
 					).Magnitude
-					< 100
-			then l + 1
-			else l
+					< 100 then return l + 1 else return l end end)()
 	end
 	if l >= 2 then
 		return true
@@ -22867,14 +22748,12 @@ function CheckMultiTeleDoor()
 	local l = 0
 	for S, I in g, R, m do
 		S = CheckMultiAccount()[I.Name]
-		l = if S
+		l = (function() if S
 				and (
 						I.HumanoidRootPart.Position
 						- game:GetService("Workspace").Map["Temple of Time"][S .. "Corridor"].Door.Door.RightDoor.Union.Position
 					).Magnitude
-					< 100
-			then l + 1
-			else l
+					< 100 then return l + 1 else return l end end)()
 	end
 	if l >= 2 then
 		return true
@@ -22919,9 +22798,7 @@ function GetSeaBeastTrial()
 	if not game.Workspace.Map:FindFirstChild("FishmanTrial") then
 		return
 	end
-	local g = if game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water")
-		then (game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water"))
-		else nil
+	local g = (function() if game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water") then return (game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water")) else return nil end end)()
 	if g then
 		local R, m, l = next, game:GetService("Workspace").SeaBeasts:GetChildren()
 		for S, S in R, m, l do
@@ -23093,9 +22970,7 @@ function AutoTrialV4()
 					or t:DistanceFromCharacter(game:GetService("Workspace").Map.SkyTrial.Model.FinishPart.Position)
 						> 1000
 			elseif R == "Fishman" then
-				local m = if game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water")
-					then (game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water"))
-					else nil
+				local m = (function() if game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water") then return (game:GetService("Workspace")._WorldOrigin.Locations:FindFirstChild("Trial of Water")) else return nil end end)()
 				if m and (m.Position - t.Character.HumanoidRootPart.Position).Magnitude < 1500 then
 					local m = GetSeaBeastTrial()
 					repeat
@@ -23445,7 +23320,7 @@ GetItemsSection.CreateToggle(
 function CountZombie(g)
 	local R = 0
 	for m, m in pairs(game.workspace.Enemies:GetChildren()) do
-		R = if m.Name == "Living Zombie" and m.Humanoid.Health > 0 then if not g then R + 1 else R else R
+		R = (function() if m.Name == "Living Zombie" and m.Humanoid.Health > 0 then return (function() if not g then return R + 1 else return R end end)() else return R end end)()
 	end
 	return R
 end
@@ -23563,7 +23438,7 @@ function GuitarPuzzleProgress()
 			end
 			for R, m in pairs(Trophy) do
 				local l = tostring(game.workspace.Map["Haunted Castle"].Trophies.Quest[m].Handle.CFrame):split(", ")[4]
-				m = if l == "1" or l == "-1" then "90" else "180"
+				m = ((l == "1" or l == "-1") and "90" or "180")
 				if not string.find(tostring(g[R].Line.Rotation.Z), m) then
 					repeat
 						task.wait()
@@ -23861,13 +23736,7 @@ function QuestGood4()
 	end
 end
 function TourchGood5()
-	return if game:GetService("Workspace").Map.HeavenlyDimension.Torch1.ProximityPrompt.Enabled
-		then "1"
-		else if game:GetService("Workspace").Map.HeavenlyDimension.Torch2.ProximityPrompt.Enabled
-			then "2"
-			else if game:GetService("Workspace").Map.HeavenlyDimension.Torch3.ProximityPrompt.Enabled
-				then "3"
-				else nil
+	return ((game:GetService("Workspace").Map.HeavenlyDimension.Torch1.ProximityPrompt.Enabled) and "1" or ((game:GetService("Workspace").Map.HeavenlyDimension.Torch2.ProximityPrompt.Enabled) and "2" or ((game:GetService("Workspace").Map.HeavenlyDimension.Torch3.ProximityPrompt.Enabled) and "3" or nil)))
 end
 function DetectMobCDK()
 	for g, g in pairs(game.Workspace.Enemies:GetChildren()) do
@@ -23970,12 +23839,10 @@ function QuestEvil3()
 	local g, R, m = next, game.workspace.Enemies:GetChildren()
 	local l
 	for S, S in g, R, m do
-		l = if S:IsA("Model")
+		l = (function() if S:IsA("Model")
 				and S.Name == "Marine Commodore"
 				and (S:FindFirstChild("HumanoidRootPart"))
-				and S.Humanoid.Health > 0
-			then S
-			else l
+				and S.Humanoid.Health > 0 then return S else return l end end)()
 	end
 	if not l then
 		GetPart = DetectPartSpawnMob("Marine Commodore")
@@ -23991,13 +23858,11 @@ function DetectMobPhaze()
 	local g, R, m = next, game.workspace.Enemies:GetChildren()
 	local l
 	for S, S in g, R, m do
-		l = if S:IsA("Model")
+		l = (function() if S:IsA("Model")
 				and (S:FindFirstChild("HumanoidRootPart"))
 				and (S:FindFirstChild("HazeESP"))
 				and (S:FindFirstChild("Humanoid"))
-				and S.Humanoid.Health > 0
-			then S
-			else l
+				and S.Humanoid.Health > 0 then return S else return l end end)()
 	end
 	return l
 end
@@ -24030,11 +23895,7 @@ function QuestEvil4()
 	end
 end
 function TourchEvil5()
-	return if game:GetService("Workspace").Map.HellDimension.Torch1.ProximityPrompt.Enabled
-		then "1"
-		else if game:GetService("Workspace").Map.HellDimension.Torch2.ProximityPrompt.Enabled
-			then "2"
-			else if game:GetService("Workspace").Map.HellDimension.Torch3.ProximityPrompt.Enabled then "3" else nil
+	return ((game:GetService("Workspace").Map.HellDimension.Torch1.ProximityPrompt.Enabled) and "1" or ((game:GetService("Workspace").Map.HellDimension.Torch2.ProximityPrompt.Enabled) and "2" or ((game:GetService("Workspace").Map.HellDimension.Torch3.ProximityPrompt.Enabled) and "3" or nil)))
 end
 function QuestEvil5()
 	if
@@ -24198,9 +24059,7 @@ function GetCDK()
 		end
 		getgenv().Good = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("CDKQuest", "Progress", "Good").Good
 		getgenv().Evil = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("CDKQuest", "Progress", "Good").Evil
-		local g = if getgenv().Good == 4 and getgenv().Evil == 3
-			then "Pedestal2"
-			else if getgenv().Good == 3 and getgenv().Evil == 4 then "Pedestal1" else nil
+		local g = ((getgenv().Good == 4 and getgenv().Evil == 3) and "Pedestal2" or ((getgenv().Good == 3 and getgenv().Evil == 4) and "Pedestal1" or nil))
 		if g then
 			if
 				(game:GetService("Workspace").Map.Turtle.Cursed[g].Position - t.Character.HumanoidRootPart.Position).Magnitude
@@ -24369,17 +24228,7 @@ GetItemsSection.CreateToggle({ Title = "Auto Yama", Desc = nil, Default = Settin
 end)
 function checkTorch()
 	local g, R, m, l =
-		if not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch1.Particles.Main.Enabled
-			then "1"
-			else if not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch2.Particles.Main.Enabled
-				then "2"
-				else if not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch3.Particles.Main.Enabled
-					then "3"
-					else if not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch4.Particles.Main.Enabled
-						then "4"
-						else if not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch5.Particles.Main.Enabled
-							then "5"
-							else nil,
+		((not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch1.Particles.Main.Enabled) and "1" or ((not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch2.Particles.Main.Enabled) and "2" or ((not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch3.Particles.Main.Enabled) and "3" or ((not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch4.Particles.Main.Enabled) and "4" or ((not game:GetService("Workspace").Map.Turtle.QuestTorches.Torch5.Particles.Main.Enabled) and "5" or nil))))),
 		next,
 		game:GetService("Workspace").Map.Turtle.QuestTorches:GetChildren()
 	for S, S in R, m, l do
@@ -24937,7 +24786,7 @@ function AutoYorumini()
 			end
 			g = GetNearestChest()
 			if g then
-				f += 1
+				f = f + (1)
 				local R
 				repeat
 					task.wait()
@@ -25183,7 +25032,7 @@ function DetectNameWpUpgrade(g)
 			if l < S.Rarity then
 				l, Q = S.Rarity, S.Name
 			else
-				Q = if l == S.Rarity then S.Name else Q
+				Q = (function() if l == S.Rarity then return S.Name else return Q end end)()
 			end
 		end
 	end
@@ -25242,7 +25091,7 @@ function AutoUpgradeWeapon(R)
 		end
 		return
 	end
-	local m = if f then (DetectMaterialsUpgrade()) else nil
+	local m = (function() if f then return (DetectMaterialsUpgrade()) else return nil end end)()
 	if f and not m then
 		if getgenv().StatusUpgradeWP then
 			StatusUpgradeWP.SetText("Go Upgrade Weapon")
@@ -25649,18 +25498,12 @@ function AutoFindPrehistoric()
 			local f, R, m =
 				CFrame.new(-118834.515625, 160, -78.9505844116211) * CFrame.new(0, 0, 99999999),
 				CFrame.new(-32975.9921875, 160, 25963.7109375),
-				if Settings["Will Back When over 10km"]
-					then if DistanceFindLeviathan() >= 12000
-						then true
-						else if DistanceFindLeviathan() <= 4800 then false else false
-					else false
+				(function() if Settings["Will Back When over 10km"] then return (function() if DistanceFindLeviathan() >= 12000 then return true else return (function() if DistanceFindLeviathan() <= 4800 then return false else return false end end)() end end)() else return false end end)()
 			repeat
 				task.wait(0.5)
 				NoclipBoat(g)
 				if Settings["Will Back When over 10km"] then
-					m = if DistanceFindLeviathan() >= 10000
-						then true
-						else if DistanceFindLeviathan() <= 4800 then false else m
+					m = (function() if DistanceFindLeviathan() >= 10000 then return true else return (function() if DistanceFindLeviathan() <= 4800 then return false else return m end end)() end end)()
 					if m then
 						manageTween(g.VehicleSeat, R, 350, "TweenBoatBack")
 					end
@@ -26581,20 +26424,14 @@ function GetFruitName(s, X)
 	end
 	if f then
 		for R, m in pairs(b) do
-			g = if table.find(f, R) then m else g
+			g = (function() if table.find(f, R) then return m else return g end end)()
 		end
 	end
 	if g == "Fruit " then
 		f = s:FindFirstChild("Fruit")
-		g = if f
-			then if f:FindFirstChild("Retopo_Cube.001")
-				then "Spirit Fruit"
-				else if f:FindFirstChild("Gravity cube.026")
-					then if f:FindFirstChild("Gravity cube.001") then "Blizzard Fruit" else "Portal Fruit"
-					else if f:FindFirstChild("Cube.011") then "Rubber Fruit" else g
-			else g
+		g = (function() if f then return ((f:FindFirstChild("Retopo_Cube.001")) and "Spirit Fruit" or (function() if f:FindFirstChild("Gravity cube.026") then return ((f:FindFirstChild("Gravity cube.001")) and "Blizzard Fruit" or "Portal Fruit") else return ((f:FindFirstChild("Cube.011")) and "Rubber Fruit" or g) end end)()) else return g end end)()
 	end
-	return if X then "[Natural Spawn]\10" .. g else g
+	return (function() if X then return "[Natural Spawn]\10" .. g else return g end end)()
 end
 function EspFruit()
 	local b = GetEspFruit()
@@ -26849,9 +26686,7 @@ SettingsAimbotSection.CreateToggle(
 local b = require(game:GetService("ReplicatedStorage").Modules.CombatUtil).GetTargetPosition
 require(game:GetService("ReplicatedStorage").Modules.CombatUtil).GetTargetPosition = function(s, X, g, f, R)
 	if Settings["Auto Aimbot Gun"] then
-		local m = if Settings["Select Method Aimbot"] == "Select Player"
-			then game.Workspace.Characters[Settings["Select Player PVP"]]
-			else (ClosestPartaimbot())
+		local m = (function() if Settings["Select Method Aimbot"] == "Select Player" then return game.Workspace.Characters[Settings["Select Player PVP"]] else return (ClosestPartaimbot()) end end)()
 		if m and (m:FindFirstChild("HumanoidRootPart")) then
 			return m.HumanoidRootPart.Position
 		end
@@ -26977,7 +26812,7 @@ function get_ping_tag()
 		local X, g = pcall(function()
 			return Settings["Input Discord Ping"]
 		end)
-		s = if X and (tonumber(g)) then "<@" .. g .. ">" else "@everyone"
+		s = (function() if X and (tonumber(g)) then return "<@" .. g .. ">" else return "@everyone" end end)()
 	end
 	return s
 end
@@ -27004,14 +26839,12 @@ local function s(X, g, f)
 	if not R or R == "" then
 		return
 	end
-	local m = if f
-		then {
+	local m = ((f) and {
 			{ name = "Stored Fruit", value = "```" .. safe_str(g) .. "```", inline = false },
 			{ name = "Username", value = "||" .. safe_str(t and t.Name or "Unknown") .. "||", inline = true },
 			{ name = "Time", value = os.date("%Y-%m-%d %H:%M:%S"), inline = true },
 			{ name = "PlaceId", value = "`" .. safe_str(game.PlaceId) .. "`", inline = true },
-		}
-		else (base_fields(X, g))
+		} or (base_fields(X, g)))
 	local X = {
 		content = get_ping_tag(),
 		username = b.Username,
@@ -27118,7 +26951,7 @@ function Webhookprofile()
 		local I, _ = d ~= "" and d or "None", 0
 		if I ~= "None" then
 			d = f.Backpack:FindFirstChild(I) or f.Character and (f.Character:FindFirstChild(I))
-			_ = if d and (d:FindFirstChild("Level")) then tonumber(d.Level.Value) or 0 else _
+			_ = (function() if d and (d:FindFirstChild("Level")) then return tonumber(d.Level.Value) or 0 else return _ end end)()
 		end
 		return I, _
 	end
@@ -27162,7 +26995,7 @@ function Webhookprofile()
 		for N, N in ipairs(B() or {}) do
 			if type(N) == "table" then
 				local y, P, e = tonumber(N.Value), tonumber(N.Rarity), s(N.Name or "")
-				e = if e ~= "" and (e:find("-", 1, true)) then e:split("-")[1] else e
+				e = (function() if e ~= "" and (e:find("-", 1, true)) then return e:split("-")[1] else return e end end)()
 				if y and y >= b.FruitMinValue then
 					table.insert(o, { Name = e, Value = y })
 				elseif P and P >= b.ItemMinRarity then
@@ -27483,7 +27316,7 @@ a.CreateToggle({ Title = "Boost Fps", Desc = nil, Default = Settings["Boost Fps"
 		for d, d in next, f, nil do
 			if E(d, "BasePart") then
 				d.Material = X
-				S += 1
+				S = S + (1)
 				if R() - l > 0.008333333333333333 then
 					g = "Working.. " .. S
 					m()
@@ -27497,7 +27330,7 @@ a.CreateToggle({ Title = "Boost Fps", Desc = nil, Default = Settings["Boost Fps"
 		for g, f in next, K, nil do
 			if E(f, "BasePart") then
 				f.Material = X
-				S += 1
+				S = S + (1)
 				if R() - l > 0.008333333333333333 then
 					g = "Working.. " .. S
 					m()
@@ -27637,7 +27470,7 @@ spawn(function()
 	end)
 end)
 loadstring(
-	'local MT = getrawmetatable(game)\10local OldNameCall = MT.__namecall\10setreadonly(MT, false)\10MT.__namecall = newcclosure(function(self, ...)\10 local Method = getnamecallmethod()\10 local Args = { ... }\10 if\10 Method == "FireServer"\10 and self.Name == "RemoteEvent"\10 and AimPos\10 and tostring(AimPos.X) ~= "nan"\10 and (\10 Settings["Auto Event Prehistoric Island"]\10 or Settings["Kill players When complete Trial"]\10 or Settings["Auto Quest Dragon Hunter"]\10 or Settings["Auto Quest Dojo Trainer"]\10 or Settings["Farm Mastery"]\10 or Settings["Auto Attack Leviathan"]\10 or Settings["Auto Sea Event"]\10 or Settings["Auto Upgrade Race V2-V3"]\10 or Settings["Auto Trial"]\10 or Settings["Auto Aimbot"]\10 or Settings["Auto Shipwright"]\10 )\10 then\10 if #Args == 1 and typeof(Args[1]) == "Vector3" then\10 Args[1] = AimPos.Position\10 end\10 if #Args == 1 and typeof(Args[1]) == "CFrame" then\10 Args[1] = AimPos\10 end\10 end\10 return OldNameCall(self, unpack(Args))\10end)\10setreadonly(MT, true)\10'
+	'if getgenv().__BC_NAMECALL == game.JobId then return end\10getgenv().__BC_NAMECALL = game.JobId\10local MT = getrawmetatable(game)\10local OldNameCall = MT.__namecall\10setreadonly(MT, false)\10MT.__namecall = newcclosure(function(self, ...)\10 local Method = getnamecallmethod()\10 local Args = { ... }\10 if\10 Method == "FireServer"\10 and self.Name == "RemoteEvent"\10 and AimPos\10 and tostring(AimPos.X) ~= "nan"\10 and (\10 Settings["Auto Event Prehistoric Island"]\10 or Settings["Kill players When complete Trial"]\10 or Settings["Auto Quest Dragon Hunter"]\10 or Settings["Auto Quest Dojo Trainer"]\10 or Settings["Farm Mastery"]\10 or Settings["Auto Attack Leviathan"]\10 or Settings["Auto Sea Event"]\10 or Settings["Auto Upgrade Race V2-V3"]\10 or Settings["Auto Trial"]\10 or Settings["Auto Aimbot"]\10 or Settings["Auto Shipwright"]\10 )\10 then\10 if #Args == 1 and typeof(Args[1]) == "Vector3" then\10 Args[1] = AimPos.Position\10 end\10 if #Args == 1 and typeof(Args[1]) == "CFrame" then\10 Args[1] = AimPos\10 end\10 end\10 return OldNameCall(self, unpack(Args))\10end)\10setreadonly(MT, true)\10'
 )()
 x = game:GetService("RunService")
 
@@ -27689,9 +27522,7 @@ if not getgenv().BananaCatMainLoop then
 		end
 		pcall(function()
 			if Settings["Auto Aimbot"] then
-				local T = if Settings["Select Method Aimbot"] == "Select Player"
-					then workspace.Characters[Settings["Select Player PVP"]]
-					else (ClosestPartaimbot())
+				local T = (function() if Settings["Select Method Aimbot"] == "Select Player" then return workspace.Characters[Settings["Select Player PVP"]] else return (ClosestPartaimbot()) end end)()
 				if T and (T:FindFirstChild("HumanoidRootPart")) then
 					local b = workspace.CurrentCamera
 					G.Hit = T.HumanoidRootPart.CFrame
@@ -27783,4 +27614,9 @@ if not getgenv().BananaCatMainLoop then
 		end
 	end)
 end
+pcall(function()
+	game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
+		pcall(collectgarbage, "collect")
+	end)
+end)
 getgenv().__BF_LOADED = game.JobId
