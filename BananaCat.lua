@@ -5042,7 +5042,7 @@ function toTarget(P, e)
 		if ReadyToDodge and cpMob and cpMob.Parent and cpMob:FindFirstChild("HumanoidRootPart") then
 			TweenManager.CancelTweenOnly()
 			I()
-			H.CFrame = cpMob.HumanoidRootPart.CFrame * CFrame.new(0, -50, 0)
+			H.CFrame = cpMob.HumanoidRootPart.CFrame * CFrame.new(0, -30, 0)
 			return
 		end
 	end
@@ -6315,7 +6315,7 @@ game:GetService("Workspace").Enemies.DescendantAdded:Connect(function(descendant
 
 	if flag and descendant.Parent.Parent == AttackingMob then
 		Doding = true
-		-- chi Cake Prince: luu boss de toTarget teleport toi boss + (0, -50, 0) trong luc ne; mob khac giu nguyen +200 Y
+		-- chi Cake Prince: luu boss de toTarget teleport toi boss + (0, -30, 0) trong luc ne; mob khac giu nguyen +200 Y
 		getgenv().DodgeCakePrinceMob = (AttackingMob.Name == "Cake Prince") and AttackingMob or nil
 		ReadyToDodge = true
 		local now = tick()
