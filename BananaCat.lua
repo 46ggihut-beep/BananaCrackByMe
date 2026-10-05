@@ -5671,10 +5671,6 @@ getgenv().ClickM1Volcano = function(E, l)
 end
 local m = L:WaitForChild("Modules")
 getgenv().SpamGunDragonStorm = function(E)
-	-- farm ship với Use Dragonstorm For Sea Event: giả lập click vào model thuyền, 0.4s click 1 lần
-	if E and E.Name == "Engine" and Settings["Use Dragonstorm For Sea Event"] and getgenv().ClickModelDS then
-		getgenv().ClickModelDS(E.Parent, 0.4)
-	end
 	local l, Q = require(m.CombatUtil), t.Character
 	local d = Q and (Q:FindFirstChild("Dragonstorm"))
 	if not d or (l:IsGunReloading(d)) then
@@ -5808,32 +5804,6 @@ do
 			VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
 			VIM:SendMouseButtonEvent(0, 0, 0, false, game, 1)
 		end)
-	end
-
-	-- giả lập click lên model (thuyền đang farm), mỗi `interval` giây click 1 lần
-	local lastModelClick = 0
-	getgenv().ClickModelDS = function(model, interval)
-		if not model or tick() - lastModelClick < (interval or 0.4) then
-			return
-		end
-		local part = model:FindFirstChild("Engine") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
-		if not part then
-			return
-		end
-		lastModelClick = tick()
-		local cam = workspace.CurrentCamera
-		local v = cam:WorldToViewportPoint(part.Position)
-		local vp = cam.ViewportSize
-		if v.Z <= 0 or v.X < 0 or v.Y < 0 or v.X > vp.X or v.Y > vp.Y then
-			cam.CFrame = CFrame.lookAt(cam.CFrame.Position, part.Position)
-			v = cam:WorldToViewportPoint(part.Position)
-		end
-		local x, y = math.clamp(v.X, 1, vp.X - 1), math.clamp(v.Y, 1, vp.Y - 1)
-		if getgenv().ClickUseInset then
-			y = y + GuiService:GetGuiInset().Y
-		end
-		VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
-		VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
 	end
 end
 function ShootM1(E)
