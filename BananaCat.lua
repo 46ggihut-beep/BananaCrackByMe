@@ -20844,6 +20844,49 @@ function DetectRockVolcano()
 	end
 	return R
 end
+-- Use Skull Guitar with fix lava: click chuot vao model da (world -> screen), moi `interval` giay click 1 lan
+function ClickModelFixLava(model, interval)
+	if not model or tick() - (getgenv().__LastRockClick or 0) < (interval or 0.6) then
+		return
+	end
+	getgenv().__LastRockClick = tick()
+	local cam = workspace.CurrentCamera
+	local pos = model:GetPivot().Position
+	local v = cam:WorldToViewportPoint(pos)
+	local vp = cam.ViewportSize
+	if v.Z <= 0 or v.X < 0 or v.Y < 0 or v.X > vp.X or v.Y > vp.Y then
+		cam.CFrame = CFrame.lookAt(cam.CFrame.Position, pos)
+		v = cam:WorldToViewportPoint(pos)
+	end
+	local x, y = math.clamp(v.X, 1, vp.X - 1), math.clamp(v.Y, 1, vp.Y - 1)
+	if getgenv().ClickUseInset then
+		y = y + game:GetService("GuiService"):GetGuiInset().Y
+	end
+	local vim = game:GetService("VirtualInputManager")
+	vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+	vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+end
+-- Co da can sua: trang bi Skull Guitar (chua co thi LoadItem lay ra), du gan da (< 100 studs) thi click vao model da moi 0.6s
+function UseSkullGuitarFixLava(rock)
+	local char = t.Character
+	if not char or not rock then
+		return
+	end
+	if not char:FindFirstChild("Skull Guitar") then
+		if not t.Backpack:FindFirstChild("Skull Guitar") and tick() - (getgenv().__SkullLoadTick or 0) > 3 then
+			getgenv().__SkullLoadTick = tick()
+			pcall(function()
+				game:GetService("ReplicatedStorage").Remotes.CommF_
+					:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Skull Guitar" }))
+			end)
+		end
+		equiptool("Skull Guitar")
+		return
+	end
+	if t:DistanceFromCharacter(rock.WorldPivot.Position) < 100 then
+		ClickModelFixLava(rock, 0.6)
+	end
+end
 function AutoUseSkillFixLava(b)
 	b = Settings["Select Weapons Fix Lava"] or {}
 	local s, X, g, R, l =
@@ -21399,7 +21442,9 @@ function FullyDraco()
 									if t:DistanceFromCharacter((g.WorldPivot * R).Position) > 8 then
 										toTarget(g.WorldPivot * R)
 									end
-									if t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
+									if Settings["Use Skull Guitar with fix lava"] then
+										UseSkullGuitarFixLava(g)
+									elseif t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
 										AutoUseSkillFixLava()
 									end
 									getgenv().AimPos = g.WorldPivot
@@ -21427,7 +21472,9 @@ function FullyDraco()
 								if t:DistanceFromCharacter((g.WorldPivot * R).Position) > 8 then
 									toTarget(g.WorldPivot * R)
 								end
-								if t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
+								if Settings["Use Skull Guitar with fix lava"] then
+									UseSkullGuitarFixLava(g)
+								elseif t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
 									AutoUseSkillFixLava()
 								end
 								getgenv().AimPos = g.WorldPivot
@@ -25363,6 +25410,12 @@ SettingsVolcanoSection.CreateDropdown(
 		SaveSettings("Select Weapons Fix Lava", g, f)
 	end
 )
+SettingsVolcanoSection.CreateToggle(
+	{ Title = "Use Skull Guitar with fix lava", Desc = nil, Default = Settings["Use Skull Guitar with fix lava"] or false },
+	function(g)
+		SaveSettings("Use Skull Guitar with fix lava", g)
+	end
+)
 SettingsVolcanoSection.CreateDropdown(
 	{
 		Title = "Select Method Kill Golem",
@@ -25757,7 +25810,9 @@ function AutoAttackVolcano()
 							if t:DistanceFromCharacter((g.WorldPivot * f).Position) > 8 then
 								toTarget(g.WorldPivot * f)
 							end
-							if t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
+							if Settings["Use Skull Guitar with fix lava"] then
+								UseSkullGuitarFixLava(g)
+							elseif t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
 								AutoUseSkillFixLava()
 							end
 							getgenv().AimPos = g.WorldPivot
@@ -25782,7 +25837,9 @@ function AutoAttackVolcano()
 						if t:DistanceFromCharacter((g.WorldPivot * f).Position) > 8 then
 							toTarget(g.WorldPivot * f)
 						end
-						if t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
+						if Settings["Use Skull Guitar with fix lava"] then
+							UseSkullGuitarFixLava(g)
+						elseif t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
 							AutoUseSkillFixLava()
 						end
 						getgenv().AimPos = g.WorldPivot
@@ -26266,7 +26323,9 @@ function FullyEventVolcano()
 							if t:DistanceFromCharacter((g.WorldPivot * s).Position) > 8 then
 								toTarget(g.WorldPivot * s)
 							end
-							if t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
+							if Settings["Use Skull Guitar with fix lava"] then
+								UseSkullGuitarFixLava(g)
+							elseif t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
 								AutoUseSkillFixLava()
 							end
 							getgenv().AimPos = g.WorldPivot
@@ -26291,7 +26350,9 @@ function FullyEventVolcano()
 						if t:DistanceFromCharacter((g.WorldPivot * s).Position) > 8 then
 							toTarget(g.WorldPivot * s)
 						end
-						if t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
+						if Settings["Use Skull Guitar with fix lava"] then
+							UseSkullGuitarFixLava(g)
+						elseif t:DistanceFromCharacter(g.WorldPivot.Position) < 100 then
 							AutoUseSkillFixLava()
 						end
 						getgenv().AimPos = g.WorldPivot
