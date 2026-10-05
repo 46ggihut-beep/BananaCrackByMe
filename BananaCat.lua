@@ -5816,7 +5816,7 @@ do
 		if not model or tick() - lastModelClick < (interval or 0.4) then
 			return
 		end
-		local part = model:FindFirstChild("Engine") or model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+		local part = model:FindFirstChild("Engine") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
 		if not part then
 			return
 		end
@@ -6970,21 +6970,7 @@ function FarmMastery(V)
 		return
 	end
 	if C == "Gun" and (t.Character:FindFirstChild(J)) then
-		if J == "Dragonstorm" then
-			-- Dragonstorm: dung logic shoot cua "Kill Aura With DragonStorm" ban vao mob dang farm
-			local part = V:FindFirstChild("HumanoidRootPart")
-			if
-				part
-				and getgenv().ShootGunDS
-				and tick() - (getgenv().__MasteryDSLast or 0) >= (getgenv().ShootGunDelay or 0.02)
-			then
-				getgenv().__MasteryDSLast = tick()
-				getgenv().ShootGunDS(part)
-			end
-		elseif getgenv().ClickModelDS then
-			-- Gun khac: click vao model mob dang farm moi 0.6s
-			getgenv().ClickModelDS(V, 0.6)
-		end
+		ShootM1(V)
 	end
 	equiptool(J)
 	if J == "Control-Control" then
@@ -17955,7 +17941,7 @@ SettingSeaEventSection.CreateToggle(
 SettingSeaEventSection.CreateToggle(
 	{
 		Title = "Auto Change Dragonstorm With Skull Guitar",
-		Desc = "Need Use Click M1 Skull Guitar For Sea Event\10Kill Boat and Fish and TerrorShark use Dragonstorm\10Kill Seabeast use Skull Guitar",
+		Desc = "When Kill Boat and Fish and TerrorShark use Dragonstorm\10Kill Seabeast use Seabeast",
 		Default = Settings["Auto Change Dragonstorm With Skull Guitar"] or false,
 	},
 	function(l)
@@ -18565,10 +18551,6 @@ function DetectSeaEvents(b)
 	end
 	return false
 end
--- Auto Change Dragonstorm With Skull Guitar chi hoat dong khi "Use Click M1 Skull Guitar For Sea Event" cung bat
-function SkullGuitarAutoChange()
-	return Settings["Auto Change Dragonstorm With Skull Guitar"] and Settings["Use Click M1 Skull Guitar For Sea Event"]
-end
 function UseSkillGun()
 	local b = NameWeapon("Gun", true) or false
 	if b and not game:GetService("Players").LocalPlayer.PlayerGui.Main.Skills:FindFirstChild(b.Name) then
@@ -18683,7 +18665,7 @@ function AutoSeabeast()
 			TeleportSeaEvents(b)
 			if b:FindFirstChildWhichIsA("Humanoid") then
 				if Settings["Use Dragonstorm For Sea Event"] then
-					if SkullGuitarAutoChange() then
+					if Settings["Auto Change Dragonstorm With Skull Guitar"] then
 						if not NameWeapon("Gun") or NameWeapon("Gun") ~= "Dragonstorm" then
 							game:GetService("ReplicatedStorage").Remotes.CommF_
 								:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Dragonstorm" }))
@@ -18718,12 +18700,9 @@ function AutoSeabeast()
 							t.Character.HumanoidRootPart.Position.Z
 						)
 					end
-					if
-						Settings["Use Dragonstorm For Sea Event"]
-						and not (b.Name == "SeaBeast1" and SkullGuitarAutoChange())
-					then
+					if Settings["Use Dragonstorm For Sea Event"] then
 						getgenv().SeaEventDSFarmTick = tick()
-						if SkullGuitarAutoChange() then
+						if Settings["Auto Change Dragonstorm With Skull Guitar"] then
 							if not NameWeapon("Gun") or NameWeapon("Gun") ~= "Dragonstorm" then
 								game:GetService("ReplicatedStorage").Remotes.CommF_
 									:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Dragonstorm" }))
@@ -18735,7 +18714,7 @@ function AutoSeabeast()
 							UseSkillGun()
 						end
 					elseif Settings["Use Click M1 Skull Guitar For Sea Event"] then
-						if SkullGuitarAutoChange() then
+						if Settings["Auto Change Dragonstorm With Skull Guitar"] then
 							if not NameWeapon("Gun") or NameWeapon("Gun") ~= "Skull Guitar" then
 								game:GetService("ReplicatedStorage").Remotes.CommF_
 									:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Skull Guitar" }))
@@ -18743,9 +18722,6 @@ function AutoSeabeast()
 						end
 						equiptool(NameWeapon("Gun"))
 						SpamGunSkullGuitar(X)
-						if b.Name == "SeaBeast1" and getgenv().ClickModelDS then
-							getgenv().ClickModelDS(b, 0.6)
-						end
 						if t:DistanceFromCharacter(X.Position) < 400 then
 							UseSkillGun()
 						end
@@ -19444,7 +19420,7 @@ function DestroyIDK()
 				end)
 				if s:FindFirstChildWhichIsA("Humanoid") then
 					if Settings["Use Dragonstorm For Sea Event"] then
-						if SkullGuitarAutoChange() then
+						if Settings["Auto Change Dragonstorm With Skull Guitar"] then
 							if not NameWeapon("Gun") or NameWeapon("Gun") ~= "Dragonstorm" then
 								game:GetService("ReplicatedStorage").Remotes.CommF_
 									:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Dragonstorm" }))
@@ -19478,12 +19454,9 @@ function DestroyIDK()
 							t.Character.HumanoidRootPart.Position.Z
 						)
 					end
-					if
-						Settings["Use Dragonstorm For Sea Event"]
-						and not (s.Name == "SeaBeast1" and SkullGuitarAutoChange())
-					then
+					if Settings["Use Dragonstorm For Sea Event"] then
 						getgenv().SeaEventDSFarmTick = tick()
-						if SkullGuitarAutoChange() then
+						if Settings["Auto Change Dragonstorm With Skull Guitar"] then
 							if not NameWeapon("Gun") or NameWeapon("Gun") ~= "Dragonstorm" then
 								game:GetService("ReplicatedStorage").Remotes.CommF_
 									:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Dragonstorm" }))
@@ -19495,7 +19468,7 @@ function DestroyIDK()
 							UseSkillGun()
 						end
 					elseif Settings["Use Click M1 Skull Guitar For Sea Event"] then
-						if SkullGuitarAutoChange() then
+						if Settings["Auto Change Dragonstorm With Skull Guitar"] then
 							if not NameWeapon("Gun") or NameWeapon("Gun") ~= "Skull Guitar" then
 								game:GetService("ReplicatedStorage").Remotes.CommF_
 									:InvokeServer(unpack({ [1] = "LoadItem", [2] = "Skull Guitar" }))
@@ -19503,9 +19476,6 @@ function DestroyIDK()
 						end
 						equiptool(NameWeapon("Gun"))
 						SpamGunSkullGuitar(g)
-						if s.Name == "SeaBeast1" and getgenv().ClickModelDS then
-							getgenv().ClickModelDS(s, 0.6)
-						end
 						if t:DistanceFromCharacter(g.Position) < 400 then
 							UseSkillGun()
 						end
