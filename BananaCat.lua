@@ -431,8 +431,642 @@ game:GetService("Players").LocalPlayer.Idled:connect(function()
 	wait(1)
 	vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
 end)
-local A =
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/obiiyeuem/vthangsitink/refs/heads/main/zzzz.lua"))()
+-- ===== NEW UI: Banana Cat Hub (Library:CreateWindow / AddTab / AddLeftGroupbox) =====
+-- Lop tuong thich: script van goi API cu (CreateMain/CreatePage/CreateSection/CreateToggle...),
+-- ben duoi doi sang API UI moi (Window:AddTab, Tab:AddLeftGroupbox, Groupbox:AddToggle/AddButton/...).
+local A = (function()
+	local Library = loadstring(game:HttpGet("https://pastefy.app/vgSGtrbP/raw"))()
+	local API = { Options = {} }
+
+	----------------------------------------------------------------- THEME (tim) + avatar
+	local LOGO = "rbxassetid://107742993121192"
+	local PURPLE = Color3.fromRGB(150, 90, 255)
+	do
+		local U = getgenv().UIColor
+		if type(U) == "table" then
+			U["Logo Image"] = LOGO
+			U["Border Color"] = PURPLE
+			U["Title Text Color"] = PURPLE
+			U["Page Selected Color"] = PURPLE
+			U["Section Underline Color"] = PURPLE
+			U["Toggle Border Color"] = PURPLE
+			U["Button Color"] = PURPLE
+			U["Dropdown Selected Color"] = PURPLE
+			U["Textbox Highlight Color"] = PURPLE
+			U["Box Highlight Color"] = PURPLE
+			U["Slider Line Color"] = PURPLE
+			U["Search Icon Highlight Color"] = Color3.fromRGB(176, 128, 255)
+			U["Slider Highlight Color"] = Color3.fromRGB(176, 128, 255)
+			U["Dropdown Selected Check Color"] = Color3.fromRGB(120, 70, 215)
+			U["Background Main Color"] = Color3.fromRGB(18, 12, 30)
+			U["Background 1 Color"] = Color3.fromRGB(28, 18, 46)
+			U["Background 2 Color"] = Color3.fromRGB(40, 26, 64)
+			U["Background 3 Color"] = Color3.fromRGB(52, 34, 80)
+		end
+	end
+
+	-- Mot so mau trong UI library bi viet cung (vang/xam) -> doi tai cho sang tim
+	local COLOR_MAP = {
+		["255,206,27"] = Color3.fromRGB(150, 90, 255),
+		["255,216,77"] = Color3.fromRGB(176, 128, 255),
+		["235,186,17"] = Color3.fromRGB(130, 70, 230),
+		["215,166,7"] = Color3.fromRGB(110, 50, 205),
+		["219,177,23"] = Color3.fromRGB(120, 70, 215),
+		["194,156,20"] = Color3.fromRGB(176, 128, 255),
+		["18,18,22"] = Color3.fromRGB(18, 12, 30),
+		["28,28,34"] = Color3.fromRGB(28, 18, 46),
+		["38,38,46"] = Color3.fromRGB(40, 26, 64),
+		["48,48,56"] = Color3.fromRGB(52, 34, 80),
+		["90,90,70"] = Color3.fromRGB(110, 80, 170),
+	}
+	local function remap(c)
+		if typeof(c) ~= "Color3" then
+			return nil
+		end
+		local k = math.floor(c.R * 255 + 0.5) .. "," .. math.floor(c.G * 255 + 0.5) .. "," .. math.floor(c.B * 255 + 0.5)
+		return COLOR_MAP[k]
+	end
+	local function recolor(inst)
+		pcall(function()
+			if inst:IsA("GuiObject") then
+				local n = remap(inst.BackgroundColor3)
+				if n then
+					inst.BackgroundColor3 = n
+				end
+			end
+			if inst:IsA("ImageLabel") or inst:IsA("ImageButton") then
+				local n = remap(inst.ImageColor3)
+				if n then
+					inst.ImageColor3 = n
+				end
+			end
+			if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+				local n = remap(inst.TextColor3)
+				if n then
+					inst.TextColor3 = n
+				end
+			end
+			if inst:IsA("UIStroke") then
+				local n = remap(inst.Color)
+				if n then
+					inst.Color = n
+				end
+			end
+			if inst:IsA("UIGradient") then
+				local kps, changed = {}, false
+				for _, kp in ipairs(inst.Color.Keypoints) do
+					local n = remap(kp.Value)
+					if n then
+						changed = true
+					end
+					kps[#kps + 1] = ColorSequenceKeypoint.new(kp.Time, n or kp.Value)
+				end
+				if changed then
+					inst.Color = ColorSequence.new(kps)
+				end
+			end
+			-- thong bao: tieu de co chu "Banana Cat Hub" cung trong UI library
+			if inst.Name == "TextLabelNoti" and inst:IsA("TextLabel") then
+				inst.Text = string.gsub(inst.Text, "Banana Cat Hub", "Topi Hub")
+			end
+		end)
+	end
+	pcall(function()
+		local cg = game:GetService("CoreGui")
+		for _, name in ipairs({ "Nousigi Hub GUI", "Nousigi Hub Notification", "Nousigi Hub Btn" }) do
+			local g = cg:FindFirstChild(name)
+			if g then
+				for _, d in ipairs(g:GetDescendants()) do
+					recolor(d)
+				end
+				-- element tao sau nay: doi mau sau khi thuoc tinh da set xong
+				g.DescendantAdded:Connect(function(d)
+					task.defer(recolor, d)
+				end)
+			end
+		end
+		-- nut tron an/hien GUI (goc trai duoi) duoc tao luc load library -> doi avatar o day
+		local btn = cg:FindFirstChild("Nousigi Hub Btn")
+		if btn then
+			for _, d in ipairs(btn:GetDescendants()) do
+				if d:IsA("ImageLabel") then
+					d.Image = LOGO
+				end
+			end
+		end
+	end)
+	local Options = API.Options
+
+	-- ho tro ca cach goi obj.Fn(x) lan obj:Fn(x)
+	local function pick(a, b)
+		if b ~= nil then
+			return b
+		end
+		return a
+	end
+
+	-- UI cu goi callback ngay khi tao (Default = true se tu chay lai). UI moi khong lam vay -> bat lai o day.
+	local function fire(cb, ...)
+		if not cb then
+			return
+		end
+		local args = table.pack(...)
+		task.defer(function()
+			local ok, err = pcall(cb, table.unpack(args, 1, args.n))
+			if not ok then
+				warn("[BananaUI] initial callback error:", err)
+			end
+		end)
+	end
+
+	-- List dang mang {"a","b"} hoac map {a=false,b=true} -> (names da sort/giu thu tu, states)
+	local function normList(list)
+		local names, states = {}, {}
+		if type(list) ~= "table" then
+			return names, states
+		end
+		if #list > 0 then
+			for _, v in ipairs(list) do
+				local n = tostring(v)
+				if states[n] == nil then
+					names[#names + 1] = n
+					states[n] = false
+				end
+			end
+		else
+			for k, v in pairs(list) do
+				local n = tostring(k)
+				names[#names + 1] = n
+				states[n] = (v == true)
+			end
+			table.sort(names)
+		end
+		return names, states
+	end
+
+	local function controlCount()
+		local all = getgenv().AllControls
+		return all and #all or 0
+	end
+
+	local function makeSection(gb, pageName, secName)
+		local sec = {}
+		local order = 0
+
+		-- danh LayoutOrder cho element vua tao (de tao lai dropdown van dung cho cu)
+		local function stamp(n0, keepOrder)
+			local all = getgenv().AllControls
+			if all and #all > n0 then
+				local c = all[#all]
+				if c and c.Element then
+					if keepOrder then
+						c.Element.LayoutOrder = keepOrder
+					else
+						order = order + 1
+						c.Element.LayoutOrder = order
+					end
+					return c
+				end
+			end
+			return nil
+		end
+
+		local function reg(title, kind, extra)
+			local o = extra or {}
+			o.type = kind
+			o.Page_Name = pageName
+			o.Section_Name = secName
+			Options[title] = o
+			return o
+		end
+
+		----------------------------------------------------------------- Toggle
+		function sec.CreateToggle(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			local default = (s.Default == true)
+			local opt = reg(title, "toggle", { value = default })
+			local n0 = controlCount()
+			local ret = gb:AddToggle(title, {
+				Text = title,
+				Desc = s.Desc or s.Description,
+				Default = default,
+				Callback = function(v)
+					opt.value = v
+					if cb then
+						cb(v)
+					end
+				end,
+			})
+			stamp(n0)
+			local obj = {}
+			function obj.SetStage(a, b)
+				ret.SetStage(pick(a, b))
+			end
+			opt.FunctionCreate = obj
+			if default then
+				fire(cb, true)
+			end
+			return obj
+		end
+
+		----------------------------------------------------------------- Button
+		function sec.CreateButton(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			reg(title, "button", {})
+			local n0 = controlCount()
+			local ret = gb:AddButton({
+				Title = title,
+				Callback = function()
+					if cb then
+						cb()
+					end
+				end,
+			})
+			stamp(n0)
+			local obj = {}
+			function obj.SetTitle(a, b)
+				if ret and ret.SetTitle then
+					ret:SetTitle(pick(a, b))
+				end
+			end
+			return obj
+		end
+
+		----------------------------------------------------------------- Label
+		function sec.CreateLabel(s)
+			local title = tostring(s.Title or s.Text or "")
+			local opt = reg(title, "textlabel", { text = title })
+			local n0 = controlCount()
+			local ret = gb:AddLabel(title)
+			stamp(n0)
+			local obj = {}
+			function obj.SetText(a, b)
+				local t = tostring(pick(a, b))
+				opt.text = t
+				ret:SetText(t)
+			end
+			function obj.GetText()
+				return opt.text
+			end
+			function obj.SetColor(a, b)
+				ret.SetColor(pick(a, b))
+			end
+			opt.FunctionCreate = obj
+			return obj
+		end
+
+		----------------------------------------------------------------- Slider
+		function sec.CreateSlider(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			local minV = tonumber(s.Min) or 0
+			local maxV = tonumber(s.Max) or 100
+			local default = math.clamp(tonumber(s.Default) or minV, minV, maxV)
+			local opt = reg(title, "slider", { min = minV, max = maxV, step = 1, value = default })
+			local n0 = controlCount()
+			-- Luu y: Rouding/Rounding chi bat khi UI library da sua loi format (xem getgenv().BC_SliderRounding)
+			local rounding = getgenv().BC_SliderRounding
+			local ret = gb:AddSlider({
+				Title = title,
+				Min = minV,
+				Max = maxV,
+				Default = default,
+				Precise = s.Precise,
+				Rouding = rounding,
+				Rounding = rounding,
+				Callback = function(v)
+					opt.value = v
+					if cb then
+						cb(v)
+					end
+				end,
+			})
+			stamp(n0)
+			local obj = {}
+			function obj.SetValue(a, b)
+				ret.SetValue(pick(a, b))
+			end
+			opt.FunctionCreate = obj
+			fire(cb, default)
+			return obj
+		end
+
+		----------------------------------------------------------------- Box (o nhap)
+		function sec.CreateBox(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			local default = s.Default
+			if default ~= nil then
+				default = tostring(default)
+			end
+			local opt = reg(title, "box", { value = default or "" })
+			local n0 = controlCount()
+			local ret = gb:AddInput(title, {
+				Title = title,
+				Placeholder = s.Placeholder or "",
+				Numeric = (s.Number == true),
+				Default = default,
+				Callback = function(v)
+					opt.value = v
+					if cb then
+						cb(v)
+					end
+				end,
+			})
+			stamp(n0)
+			local obj = {}
+			function obj.SetValue(a, b)
+				ret.SetValue(pick(a, b))
+			end
+			opt.FunctionCreate = obj
+			if default and default ~= "" then
+				fire(cb, default)
+			end
+			return obj
+		end
+
+		----------------------------------------------------------------- Keybind
+		function sec.CreateBind(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			local callback = cb
+			if title == "Toggle GUI" then
+				-- dung ham an/hien san cua UI moi (dong bo luon nut tron goc trai duoi)
+				callback = function()
+					pcall(Library.ToggleUI)
+				end
+			end
+			local n0 = controlCount()
+			local ret = gb:AddKeyBind({
+				Title = title,
+				Key = s.Key or s.Default,
+				Mode = "Toggle",
+				Callback = function(...)
+					if callback then
+						callback(...)
+					end
+				end,
+			})
+			stamp(n0)
+			return ret or {}
+		end
+
+		----------------------------------------------------------------- Dropdown
+		local function multiDropdown(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			local prio = (s.Priority == true)
+			local names, states = normList(s.List)
+			local ord = {} -- thu tu uu tien (chi dung cho Priority)
+			local init = {}
+			if prio then
+				if type(s.Default) == "table" then
+					for _, n in ipairs(s.Default) do
+						n = tostring(n)
+						if states[n] ~= nil then
+							init[#init + 1] = n
+						end
+					end
+				end
+			else
+				for _, n in ipairs(names) do
+					if states[n] then
+						init[#init + 1] = n
+					end
+				end
+			end
+			local opt = reg(title, prio and "priority_dropdown" or "multi_toggle", {
+				list = names,
+				value = prio and {} or table.clone(states),
+			})
+			local ctl, ret
+
+			local function build(ns, initial, keepOrder)
+				local n0 = controlCount()
+				local r = gb:AddDropdown(title, {
+					Text = title,
+					Values = ns,
+					Search = s.Search,
+					Selected = true,
+					Callback = function(name, on)
+						if prio then
+							for i = #ord, 1, -1 do
+								if ord[i] == name then
+									table.remove(ord, i)
+								end
+							end
+							if on then
+								ord[#ord + 1] = name
+							end
+							opt.value = table.clone(ord)
+							if cb then
+								cb(table.clone(ord))
+							end
+						else
+							opt.value[name] = on and true or false
+							if cb then
+								cb(name, on)
+							end
+						end
+					end,
+				})
+				ctl = stamp(n0, keepOrder)
+				ret = r
+				-- UI moi chi co SetValue (bat true) -> dung de nap lai muc da chon
+				for _, n in ipairs(initial) do
+					pcall(function()
+						r:SetValue(n)
+					end)
+				end
+			end
+			build(names, init, nil)
+
+			local obj = {}
+			-- UI moi khong co refresh list cho multi -> tao lai dropdown tai dung vi tri cu
+			function obj.GetNewList(a, b)
+				local ns, st = normList(pick(a, b))
+				local lo = ctl and ctl.Element and ctl.Element.LayoutOrder or nil
+				if ctl then
+					pcall(function()
+						ctl.Element:Destroy()
+					end)
+					local all = getgenv().AllControls
+					for i = #all, 1, -1 do
+						if all[i] == ctl then
+							table.remove(all, i)
+						end
+					end
+				end
+				ord = {}
+				opt.list = ns
+				opt.value = prio and {} or table.clone(st)
+				local initial = {}
+				for _, n in ipairs(ns) do
+					if st[n] then
+						initial[#initial + 1] = n
+					end
+				end
+				build(ns, initial, lo)
+			end
+			function obj.SetValue(a, b)
+				local v = pick(a, b)
+				if type(v) == "table" then
+					if #v > 0 then
+						for _, n in ipairs(v) do
+							pcall(function()
+								ret:SetValue(tostring(n))
+							end)
+						end
+					else
+						for n, on in pairs(v) do
+							if on == true then
+								pcall(function()
+									ret:SetValue(tostring(n))
+								end)
+							end
+						end
+					end
+				elseif v ~= nil then
+					pcall(function()
+						ret:SetValue(tostring(v))
+					end)
+				end
+			end
+			opt.FunctionCreate = obj
+			return obj
+		end
+
+		local function sliderDropdown(s, cb)
+			local title = tostring(s.Title or s.Text or "")
+			local opt = reg(title, "slider_dropdown", { list = s.List })
+			local n0 = controlCount()
+			local ret = gb:AddDropdown(title, {
+				Text = title,
+				Values = s.List,
+				Search = s.Search,
+				Slider = true,
+				SliderRelease = s.SliderRelease,
+				Callback = function(...)
+					if cb then
+						cb(...)
+					end
+				end,
+			})
+			stamp(n0)
+			local obj = {}
+			function obj.GetNewList(a, b)
+				ret:GetNewList(pick(a, b))
+			end
+			opt.FunctionCreate = obj
+			return obj
+		end
+
+		function sec.CreateDropdown(s, cb)
+			if s.Slider then
+				return sliderDropdown(s, cb)
+			end
+			if s.Selected or s.Priority then
+				return multiDropdown(s, cb)
+			end
+			local title = tostring(s.Title or s.Text or "")
+			local names = normList(s.List)
+			local def = s.Default
+			if type(def) == "number" then
+				def = names[def]
+			elseif type(def) ~= "string" then
+				def = nil
+			end
+			if def and not table.find(names, def) then
+				def = nil
+			end
+			local opt = reg(title, "dropdown", { list = names, value = def })
+			local n0 = controlCount()
+			local ret = gb:AddDropdown(title, {
+				Text = title,
+				Values = names,
+				Search = s.Search,
+				Selected = false,
+				Default = def,
+				Callback = function(v)
+					opt.value = v
+					if cb then
+						cb(v)
+					end
+				end,
+			})
+			stamp(n0)
+			local obj = {}
+			function obj.GetNewList(a, b)
+				local ns = normList(pick(a, b))
+				opt.list = ns
+				opt.value = nil
+				ret:GetNewList(ns)
+			end
+			function obj.SetValue(a, b)
+				local v = pick(a, b)
+				if v ~= nil then
+					ret:SetValue(tostring(v))
+				end
+			end
+			function obj.GetValue()
+				return opt.value
+			end
+			opt.FunctionCreate = obj
+			if def then
+				fire(cb, def)
+			end
+			return obj
+		end
+
+		return sec
+	end
+
+	----------------------------------------------------------------- Window / Page
+	function API.CreateMain(_)
+		local Window = Library:CreateWindow({
+			Title = "Topi Hub",
+			Subtitle = "- Blox Fruit by wzarii",
+			Image = "rbxassetid://107742993121192",
+		})
+
+		task.delay(1, function()
+			pcall(function()
+				Library:Notify({
+					Title = "UI Library",
+					Description = "The UI automatically hides once executed.\nPress the button at the bottom-left of the screen to show the GUI.",
+					Duration = 3,
+				})
+			end)
+		end)
+
+		local main = {}
+		function main.CreatePage(s)
+			local name = tostring(s.Page_Name or s.Page_Title or "Page")
+			local tab = Window:AddTab(name)
+			local page = {}
+			function page.CreateSection(secName)
+				local gb = tab:AddLeftGroupbox(tostring(secName))
+				return makeSection(gb, name, tostring(secName))
+			end
+			return page
+		end
+		return main
+	end
+
+	----------------------------------------------------------------- Notify
+	function API.CreateNoti(s)
+		s = s or {}
+		local title = s.Title
+		if title == "Banana Cat Hub" then
+			title = "" -- UI moi da tu them "Banana Cat Hub" o dau tieu de
+		end
+		pcall(function()
+			Library:Notify({
+				Title = title or "",
+				Description = s.Description or s.Desc or s.Content or "",
+				Duration = s.Duration or s.ShowTime or 5,
+			})
+		end)
+	end
+
+	return API
+end)()
 Main = guardUI(A.CreateMain({ Title = "Blox Fruit", Desc = " - Blox Fruit By wzarii" }), "Main")
 PageShop = Main.CreatePage({ Page_Name = "Shop", Page_Title = "Shop" })
 getgenv().Options = A.Options
@@ -4159,9 +4793,13 @@ do
 		XOAY_ENTRANCE_POS = Vector3.new(3864.68798828125, 6.73699951171875, -1926.2139892578125),
 		SKY3_Y = 4000,
 		UNDER_X = 40000,
-		CLICK_INTERVAL = 0.5,
+		CLOUD_RANGE = 50, -- bán kính quanh SKY2_POS để tìm mây
+		CLOUD_REACH = 10, -- tới gần mây bao nhiêu stud thì bắt đầu đánh
+		CLOUD_ENTRANCE_POS = Vector3.new(-6023.57666015625, 5469.7197265625, 2203.308349609375), -- arg requestEntrance sau khi click mây
+		CLOUD_SKIP_TIME = 10, -- thời gian bỏ qua đám đã click mà không biến mất
+		CLOUD_INTERVAL = 0.1,
 	}
-	local st = { lastClick = 0, arrivedAt = nil, lastEntrance = 0 }
+	local st = { lastClick = 0, arrivedAt = nil, lastEntrance = 0, cloudSkip = setmetatable({}, { __mode = "k" }) }
 
 	local function zoneOf(pos)
 		if pos.X > CFG.UNDER_X then
@@ -4177,6 +4815,16 @@ do
 		B(H, CFrame.new(pos), tonumber(Settings["Speed Tween "]) or 300, 8)
 	end
 
+	-- Mây = workspace.Map.Sky.cloud (nhiều đám trùng tên). Farm như mob: bay tới từng đám còn tồn tại
+	-- trong CLOUD_RANGE quanh SKY2_POS: bay tới -> click -> requestEntrance -> đám tiếp theo
+	local function cloudPos(obj)
+		if obj:IsA("BasePart") then
+			return obj.Position
+		elseif obj:IsA("Model") then
+			return obj:GetPivot().Position
+		end
+	end
+
 	local CLICK_UDIM = UDim2.new(0.15, 0, 0.15, 0)
 	local function doClick()
 		local vim = game:GetService("VirtualInputManager")
@@ -4185,6 +4833,29 @@ do
 		local y = vp.Y * CLICK_UDIM.Y.Scale + CLICK_UDIM.Y.Offset
 		vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
 		vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+	end
+
+	-- đám cloud còn tồn tại, trong CLOUD_RANGE quanh SKY2_POS, chưa bị skip, gần player nhất
+	local function pickCloud(hrp)
+		local map = workspace:FindFirstChild("Map")
+		local sky = map and map:FindFirstChild("Sky")
+		if not sky then
+			return nil
+		end
+		local now = tick()
+		local best, bestD
+		for _, obj in ipairs(sky:GetChildren()) do
+			if obj.Name:lower() == "cloud" and (st.cloudSkip[obj] or 0) < now then
+				local pos = cloudPos(obj)
+				if pos and (pos - CFG.SKY2_POS).Magnitude <= CFG.CLOUD_RANGE then
+					local d = (pos - hrp.Position).Magnitude
+					if not bestD or d < bestD then
+						best, bestD = obj, d
+					end
+				end
+			end
+		end
+		return best
 	end
 
 	-- bay tới điểm chờ -> delay -> requestEntrance (có throttle, tự lặp lại nếu chưa qua được)
@@ -4225,46 +4896,76 @@ do
 		return true
 	end
 
-	-- Main -> Sky3: bay tới Sky2, cầm weapon đã chọn ở Setting Farm (Melee/Sword: click tại UDim2(0.15,0.15); Blox Fruit: spam skill) tới khi Y > SKY3_Y
+	-- Main -> Sky3: bay tới Sky2, bắt buộc cầm Melee, rồi với từng đám cloud còn tồn tại:
+	-- bay tới mây -> click -> requestEntrance (CLOUD_ENTRANCE_POS) -> mây tiếp theo, lặp tới khi Y > SKY3_Y
+	-- Trong lúc leo bật getgenv().Sky3Climbing => equiptool (farm) bị chặn, không đổi weapon
 	local function startClickLoop()
 		if st.clicking then
 			return
 		end
 		st.clicking = true
+		getgenv().Sky3Climbing = true
 		task.spawn(function()
+			local lp = game:GetService("Players").LocalPlayer
 			local lastEquip = 0
+			local target
 			while tick() - (st.climbTick or 0) < 0.6 do
 				local hrp = getHRP()
 				if not hrp or hrp.Position.Y > CFG.SKY3_Y then
 					break
 				end
-				local weaponType = Settings["Select Weapon"] or "Melee"
 				if tick() - lastEquip >= 0.5 then
 					lastEquip = tick()
-					local name = NameWeapon and NameWeapon(weaponType)
-					if name and equiptool then
-						equiptool(name)
+					pcall(function()
+						local char = lp.Character
+						local hum = char and char:FindFirstChildOfClass("Humanoid")
+						local tool = NameWeapon and NameWeapon("Melee", true)
+						if hum and tool and not hum.Sit and tool.Parent ~= char then
+							hum:EquipTool(tool)
+						end
+					end)
+				end
+				if not target or not target.Parent then
+					target = pickCloud(hrp)
+				end
+				local pos = target and cloudPos(target)
+				if pos then
+					if (hrp.Position - pos).Magnitude > CFG.CLOUD_REACH then
+						flyTo(hrp, pos)
+					else
+						-- tới mây: click -> remote -> sang đám khác
+						st.cloudSkip[target] = tick() + CFG.CLOUD_SKIP_TIME
+						target = nil
+						pcall(doClick)
+						task.wait(0.15)
+						I()
+						pcall(function()
+							game.ReplicatedStorage.Remotes.CommF_:InvokeServer("requestEntrance", CFG.CLOUD_ENTRANCE_POS)
+						end)
+						task.wait(0.3)
+					end
+				else
+					target = nil
+					if (hrp.Position - CFG.SKY2_POS).Magnitude > 15 then
+						flyTo(hrp, CFG.SKY2_POS)
 					end
 				end
-				if weaponType == "Blox Fruit" and type(UseSkillonlyFruit) == "function" then
-					-- Blox Fruit: spam skill thay vì click
-					pcall(UseSkillonlyFruit)
-				else
-					doClick()
-				end
-				task.wait()
+				task.wait(CFG.CLOUD_INTERVAL)
 			end
+			getgenv().Sky3Climbing = false
 			st.clicking = false
 		end)
 	end
 
 	local function climbSky3(H)
-		local d = (H.Position - CFG.SKY2_POS).Magnitude
-		if d > 15 then
-			flyTo(H, CFG.SKY2_POS)
+		st.climbTick = tick()
+		if st.clicking then
+			return true -- loop đang tự bay tới mây, không kéo về SKY2_POS
 		end
-		if d < 60 then
-			st.climbTick = tick()
+		local d = (H.Position - CFG.SKY2_POS).Magnitude
+		if d > 60 then
+			flyTo(H, CFG.SKY2_POS)
+		else
 			startClickLoop()
 		end
 		return true
@@ -5375,6 +6076,9 @@ spawn(function()
 	end
 end)
 function equiptool(g)
+	if getgenv().Sky3Climbing then
+		return
+	end
 	if g and (t:FindFirstChild("Backpack")) and (t.Backpack:FindFirstChild(g)) and not t.Character.Humanoid.Sit then
 		t.Character.Humanoid:EquipTool(t.Backpack:FindFirstChild(g))
 	end
